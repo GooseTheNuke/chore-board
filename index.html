@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Reed Chore Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Lilita+One&display=swap">
+<style>
+html,body{margin:0;padding:0}
+[hidden]{display:none!important}
+
+/* Layout: a 1920×1080 TV stage scaled to fit — four kid columns (daily chores, then the Super Chore), then a rail with Special Cleaning above the Chore Store and Team Jar. Stacks to one column on phones for editing. */
+:root{
+  color-scheme:dark;
+  --night:#141833;--panel:#1e2448;--panel-2:#283063;--line:#343c74;
+  --ink:#1a1d36;--text:#f1f2ff;--muted:#a3aad8;--gold:#ffc83d;--ok:#46d07c;
+  --julian:#ff6fae;--julian-t:#ffe1ee;
+  --eli:#53d36f;--eli-t:#dbf6e1;
+  --teddy:#4ba9ff;--teddy-t:#dcecff;
+  --theo:#ff8a4c;--theo-t:#ffe6d7;
+  --jar:#ffc83d;--jar-t:#fff1c7;
+  --neutral-t:#ecebf8;
+  --display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --read:"Andika","Verdana","Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--night);color:var(--text)}
+body{font-family:var(--read);
+  background-image:radial-gradient(1.6px 1.6px at 8% 14%,#ffffff40 50%,transparent 52%),radial-gradient(1.4px 1.4px at 31% 6%,#ffffff30 50%,transparent 52%),radial-gradient(1.8px 1.8px at 57% 11%,#ffffff38 50%,transparent 52%),radial-gradient(1.4px 1.4px at 83% 4%,#ffffff30 50%,transparent 52%),radial-gradient(1.6px 1.6px at 94% 20%,#ffffff38 50%,transparent 52%)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+#stage{display:flex;flex-direction:column;gap:20px;max-width:1500px;margin:0 auto;padding-inline:16px;padding-block:16px}
+html.tv,html.tv body{height:100%;overflow:hidden}
+html.tv #stage{position:fixed;left:0;top:0;width:1920px;height:1080px;max-width:none;margin:0;padding:24px 30px 28px;transform-origin:0 0}
+
+/* header */
+.top{display:flex;align-items:flex-end;gap:16px 24px;flex-wrap:wrap}
+.brand{display:block;font:400 18px/1 var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--gold)}
+h1{font:400 34px/1.05 var(--display);margin:6px 0 0;text-wrap:balance}
+html.tv h1{font-size:40px}
+html.tv .top{align-items:center}
+.jarpill{display:flex;align-items:center;gap:12px;background:var(--panel);border:3px solid var(--gold);border-radius:999px;padding:6px 8px 6px 10px;color:var(--text)}
+html.tv .jarpill{margin-left:auto}
+button.jarpill{cursor:pointer}
+.jarpill>.ic{width:40px;height:40px}
+.jl{font:400 24px/1 var(--display)}
+.jn{display:flex;align-items:center;gap:6px;background:var(--night);color:var(--gold);border-radius:999px;padding:4px 14px 4px 5px;font:400 28px/1 var(--display);font-variant-numeric:tabular-nums}
+.jn svg{width:30px;height:30px}
+.shares{display:flex;flex-wrap:wrap;gap:4px 12px;max-width:480px;padding:0 8px 0 4px;font:400 17px/1.15 var(--display)}
+.share{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.share i{width:12px;height:12px;border-radius:50%;background:var(--k)}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:15px;color:var(--muted)}
+
+/* main grid */
+.main{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;align-items:start}
+html.tv .main{grid-template-columns:repeat(4,minmax(0,1fr)) 550px;flex:1;min-height:0;align-items:stretch}
+.rail{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;min-width:0;align-items:start}
+html.tv .rail{grid-column:auto;display:flex;flex-direction:column;gap:16px;align-items:stretch}
+
+/* kid cards */
+.kid{background:var(--panel);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;border:3px solid var(--k);min-width:0}
+.band{background:var(--k);color:var(--night);display:flex;align-items:center;gap:10px;padding:9px 10px 9px 18px}
+.who2{flex:1;min-width:0}
+.band h2{font:400 38px/1 var(--display);margin:0;overflow-wrap:anywhere}
+.band .ptoday{display:block;font:400 17px/1 var(--display);color:var(--night);opacity:.75;margin-top:3px}
+.bank{display:flex;align-items:center;gap:6px;background:var(--night);color:var(--gold);border-radius:999px;padding:4px 14px 4px 5px;font:400 34px/1 var(--display);font-variant-numeric:tabular-nums}
+.bank svg{width:36px;height:36px}
+.mini{background:var(--night);color:var(--text);border:0;border-radius:12px;width:40px;height:40px;font:400 24px/1 var(--display);cursor:pointer}
+.prog{display:flex;align-items:center;gap:10px;padding:12px 18px 2px}
+.pips{display:flex;gap:5px;flex-wrap:wrap;align-items:center;flex:1}
+.pip{width:16px;height:16px;border-radius:50%;border:3px solid var(--k)}
+.pip.on{background:var(--k)}
+.pips svg{width:26px;height:26px;opacity:.28}
+.pips svg.on{opacity:1}
+.ptoday{font:400 21px/1 var(--display);color:var(--gold);white-space:nowrap}
+.rooms{display:flex;flex-direction:column;gap:4px;padding:10px 12px 10px}
+.room h3{font:700 13px/1 var(--read);letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:7px 8px 4px}
+.list{display:flex;flex-direction:column;gap:2px}
+.chore,.sp{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;padding:1px 6px 1px 2px;border-radius:16px;background:transparent;border:0;text-align:left;width:100%}
+button.chore,button.sp,button.item{cursor:pointer}
+button.chore:hover,button.sp:hover{background:var(--panel-2)}
+.tile{position:relative;width:42px;height:42px;border-radius:12px;background:var(--kt);display:grid;place-items:center}
+.tile .ic{width:34px;height:34px}
+.lbl{font-size:18px;line-height:1.1;font-weight:700}
+.pts{font:400 21px/1 var(--display);color:var(--gold);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.pts svg{width:22px;height:22px}
+.done .lbl{color:var(--muted);text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:var(--k)}
+.done .tile .ic{opacity:.3}
+.done .pts{opacity:.45}
+.check{position:absolute;right:-7px;bottom:-7px;width:28px;height:28px}
+.super{margin:auto 12px 12px;border:3px dashed var(--gold);border-radius:18px;padding:6px 6px 6px}
+.super .list{gap:1px}
+.super h3{display:flex;align-items:center;gap:6px;font:400 18px/1 var(--display);color:var(--gold);margin:3px 6px 4px;letter-spacing:.02em}
+.super h3 .ic{width:22px;height:22px}
+.super .tile{background:var(--jar-t)}
+
+/* rail panels */
+.panel{background:var(--panel);border-radius:26px;padding:14px 16px 16px;border:3px solid var(--line);min-width:0}
+.ph{display:flex;align-items:baseline;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.ph h2{font:400 30px/1 var(--display);margin:0}
+.wk{font:400 19px/1 var(--display);color:var(--gold);margin-left:auto}
+.special .list{gap:2px}
+.sp{grid-template-columns:46px minmax(0,1fr) auto}
+.sp .tile{width:46px;height:46px;border-radius:14px;background:var(--neutral-t)}
+.sp .tile .ic{width:38px;height:38px}
+.sp .lbl{font-size:19px}
+.sp-end{display:flex;align-items:center;gap:8px}
+.who{font:400 17px/1 var(--display);background:var(--k);color:var(--night);border-radius:999px;padding:6px 12px;white-space:nowrap}
+.empty{color:var(--muted);font-size:18px;padding:8px 4px}
+.addrow{margin-top:8px}
+.shop{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media (max-width:520px){html:not(.tv) .shop{grid-template-columns:1fr}}
+.item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:9px;align-items:center;background:var(--panel-2);border-radius:14px;padding:4px 10px 4px 4px;border:0;text-align:left;width:100%}
+.disc{width:44px;height:44px;border-radius:12px;background:var(--neutral-t);display:grid;place-items:center}
+.disc .ic{width:36px;height:36px}
+.nm{display:block;font-size:16px;line-height:1.12;font-weight:700}
+.meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.price{font:400 22px/1 var(--display);color:var(--gold);display:flex;gap:4px;align-items:center;white-space:nowrap}
+.price svg{width:22px;height:22px}
+.price small{font:700 14px/1 var(--read);color:var(--gold)}
+.can{display:flex;gap:4px}
+.can i{width:11px;height:11px;border-radius:50%;background:var(--k);opacity:.16}
+.can i.on{opacity:1}
+.sub{display:flex;align-items:center;gap:8px;font:400 22px/1 var(--display);margin:12px 2px 7px;color:var(--gold)}
+.sub .ic{width:30px;height:30px}
+.bar{width:64px;height:9px;border-radius:999px;background:var(--night);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold);border-radius:999px}
+.item.ready{box-shadow:inset 0 0 0 3px var(--gold)}
+.shop .item:last-child:nth-child(odd){grid-column:1/-1}
+.btn.k.sel{box-shadow:0 0 0 3px var(--text)}
+.diag{margin:0;padding:8px 16px 24px;color:var(--muted);font-size:14px;text-align:center}
+.note{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--panel);border:3px solid var(--gold);border-radius:16px;padding:12px 16px;font-size:16px;max-width:calc(100% - 32px);color:var(--text)}
+
+/* buttons + sheet */
+.btn{font:400 19px/1.1 var(--display);background:var(--panel-2);color:var(--text);border:2px solid var(--line);border-radius:14px;padding:10px 16px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.k{background:var(--k);color:var(--night);border-color:var(--k);display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px}
+.btn.k small{font:700 14px var(--read)}
+.btn.gold{background:var(--gold);color:var(--night);border-color:var(--gold)}
+.btn.warn{border-color:#ff6b6b;color:#ffb3b3}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+#sheet{position:fixed;inset:0;z-index:50;display:grid;place-items:end center}
+@media (min-width:700px){#sheet{place-items:center}}
+.scrim{position:absolute;inset:0;background:rgba(8,10,25,.72)}
+.sheet-card{position:relative;background:var(--panel);border:3px solid var(--line);border-radius:24px;width:min(560px,calc(100% - 24px));max-height:86vh;overflow:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));margin:12px}
+.sh-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.sh-head h2{font:400 28px/1.1 var(--display);margin:0;flex:1}
+.x{background:none;border:0;font:400 32px/1 var(--display);color:var(--muted);cursor:pointer;width:40px;height:40px}
+.sheet-body{display:flex;flex-direction:column;gap:14px}
+.lead{margin:0;font-size:18px;color:var(--muted)}
+.kidpick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stepper{display:flex;align-items:center;gap:12px}
+.sv{font:400 24px var(--display);color:var(--gold);min-width:6ch;text-align:center;font-variant-numeric:tabular-nums}
+.field label{display:block;font-size:15px;color:var(--muted);margin-bottom:6px}
+.field input{font:18px var(--read);background:var(--night);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
+.pick{background:var(--neutral-t);border:3px solid transparent;border-radius:14px;aspect-ratio:1;display:grid;place-items:center;cursor:pointer;max-width:100%}
+.pick .ic{width:38px;height:38px}
+.pick.sel{border-color:var(--gold)}
+.hist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.hist li{display:grid;grid-template-columns:12px minmax(0,1fr) auto auto;gap:10px;align-items:center;font-size:16px;padding:6px 0;border-bottom:1px solid var(--line)}
+.hist .dot{width:12px;height:12px;border-radius:50%;background:var(--k)}
+.hist .when{color:var(--muted);font-size:13px;display:block}
+.hist .amt{font:400 19px var(--display);font-variant-numeric:tabular-nums}
+.hist .neg{color:#ff9b9b}.hist .pos{color:var(--gold)}
+.hist button{padding:6px 10px;font-size:15px}
+
+svg.ic{fill:none;stroke:var(--ink);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+@media (prefers-reduced-motion:no-preference){button.chore .tile{transition:transform .15s}button.chore:active .tile{transform:scale(.93)}}
+
+</style>
+</head>
+<body>
+<div id="app"><div id="stage"></div><div id="sheet" hidden></div></div>
+<script type="application/json" id="config">{"api":"https://script.google.com/macros/s/AKfycbzKWZWl9w6GaqvT1dFMJ5CEu520OYOJc5fr_Rggld0H8totoPSBhhby2Lf0scilYzkW/exec","kids":[{"id":"julian","name":"Julian","super":[{"label":"Clean around the washer + dryer","icon":"washer","pts":3},{"label":"Vacuum my room","icon":"vacuum","pts":1},{"label":"Door knobs + light switches","icon":"switch","pts":1}],"chores":[{"id":"j0","room":"My room","label":"Clean my room","icon":"bed","pts":1,"nohead":true},{"id":"j1","room":"Dining room","label":"Clear + wipe the cabinet","icon":"cabinet","pts":2},{"id":"j3","room":"Dining room","label":"Wipe the table","icon":"table","pts":1},{"id":"j2","room":"Dining room","label":"Sweep the floor","icon":"broom","pts":1},{"id":"j7","room":"Laundry room","label":"Empty the dehumidifier","icon":"dehumidifier","pts":1},{"id":"j5","room":"Laundry room","label":"Sweep the floor","icon":"broom","pts":1},{"id":"j6","room":"Laundry room","label":"Vacuum the rugs","icon":"vacuum","pts":2},{"id":"j4","room":"Laundry room","label":"Move the laundry","icon":"basket","pts":2}]},{"id":"eli","name":"Eli","super":[{"label":"Move couches + bookstand, sweep under","icon":"couch","pts":3},{"label":"Vacuum my room","icon":"vacuum","pts":1},{"label":"Door knobs + light switches","icon":"switch","pts":1}],"chores":[{"id":"e0","room":"My room","label":"Clean my room","icon":"bed","pts":1,"nohead":true},{"id":"e1","room":"Living room","label":"Pick up the floor","icon":"toys","pts":1},{"id":"e2","room":"Living room","label":"Vacuum","icon":"vacuum","pts":2},{"id":"e3","room":"Game room","label":"Pick up the floor","icon":"toys","pts":1},{"id":"e7","room":"Game room","label":"Line up the shoes","icon":"shoes","pts":1},{"id":"e4","room":"Game room","label":"Vacuum","icon":"vacuum","pts":2},{"id":"e5","room":"Hallway","label":"Pick up the floor","icon":"toys","pts":1},{"id":"e6","room":"Hallway","label":"Sweep the floor","icon":"broom","pts":2}]},{"id":"teddy","name":"Teddy","super":[{"label":"Clean the fridge","icon":"fridge","pts":3},{"label":"Vacuum my room","icon":"vacuum","pts":1},{"label":"Door knobs + light switches","icon":"switch","pts":1}],"chores":[{"id":"t0","room":"My room","label":"Clean my room","icon":"bed","pts":1,"nohead":true},{"id":"t1","room":"Kitchen","label":"Wipe counters + table","icon":"sponge","pts":1},{"id":"t2","room":"Kitchen","label":"Wipe the stove","icon":"stove","pts":1},{"id":"t3","room":"Kitchen","label":"Sweep the floor","icon":"broom","pts":1},{"id":"t4","room":"Downstairs bathroom","label":"Wipe sink + toilet","icon":"toilet","pts":1},{"id":"t6","room":"Downstairs bathroom","label":"Stock toilet paper","icon":"tp","pts":1},{"id":"t5","room":"Downstairs bathroom","label":"Sweep the floor","icon":"broom","pts":1},{"id":"t7","room":"Upstairs bathroom","label":"Wipe sink + toilet","icon":"toilet","pts":1},{"id":"t9","room":"Upstairs bathroom","label":"Stock toilet paper","icon":"tp","pts":1},{"id":"t10","room":"Upstairs bathroom","label":"Empty the trash","icon":"trash","pts":1},{"id":"t8","room":"Upstairs bathroom","label":"Sweep the floor","icon":"broom","pts":1}]},{"id":"theo","name":"Theo","super":[{"label":"Scrub the pantry floor","icon":"brush","pts":3},{"label":"Vacuum my room","icon":"vacuum","pts":1},{"label":"Door knobs + light switches","icon":"switch","pts":1}],"chores":[{"id":"o0","room":"My room","label":"Clean my room","icon":"bed","pts":1,"nohead":true},{"id":"o1","room":"Kitchen","label":"Unload clean dishes","icon":"plates","pts":2},{"id":"o2","room":"Kitchen","label":"Load dirty dishes","icon":"dishwasher","pts":2},{"id":"o3","room":"Kitchen","label":"Wash the hand-wash dishes","icon":"pot","pts":3},{"id":"o5","room":"Pantry","label":"Clean around the trash can","icon":"trash","pts":1},{"id":"o4","room":"Pantry","label":"Sweep the floor","icon":"broom","pts":2}]}],"store":[{"id":"r1","title":"1 hour of game time","icon":"gamepad","cost":60},{"id":"r2","title":"Candy or snack pick","icon":"candy","cost":15},{"id":"r3","title":"Pick the family movie","icon":"popcorn","cost":25},{"id":"r4","title":"TV during dinner","icon":"tv","cost":30},{"id":"r5","title":"Stay up 30 min late","icon":"moon","cost":40},{"id":"r6","title":"Pick what's for dinner","icon":"dinner","cost":40},{"id":"r7","title":"Dollar store, $5 to spend","icon":"bag","cost":50},{"id":"r9","title":"Movie at the theater (ticket + snack)","icon":"ticket","cost":200},{"id":"r8","title":"Game or DLC","icon":"cart","cost":10,"unit":"per $1","min":50}],"team":[{"id":"g3","title":"New board game","icon":"dice","cost":300},{"id":"g1","title":"Ice cream trip","icon":"icecream","cost":500},{"id":"g5","title":"Family dinner out","icon":"burger","cost":800},{"id":"g4","title":"Bowling","icon":"bowling","cost":900},{"id":"g6","title":"Trampoline park","icon":"trampoline","cost":1400},{"id":"g7","title":"Amusement park day","icon":"ferris","cost":5000}]}</script>
+<script type="application/json" id="seed">{"base":{"julian":0,"eli":0,"teddy":0,"theo":0,"jar":0},"jarBase":{},"ledger":[{"id":"mv5mpi4d266t","t":1791832334845,"day":"2026-10-12","kid":"julian","pts":1,"what":"Clean my room \u00b7 My room","ref":"c:2026-10-12:j0"},{"id":"mv5mpo2zsslp","t":1791832342571,"day":"2026-10-12","kid":"julian","pts":1,"what":"Sweep the floor \u00b7 Laundry room","ref":"c:2026-10-12:j5"},{"id":"mv5mpon2g69j","t":1791832343294,"day":"2026-10-12","kid":"julian","pts":2,"what":"Vacuum the rugs \u00b7 Laundry room","ref":"c:2026-10-12:j6"},{"id":"mv5mpq3l7f18","t":1791832345185,"day":"2026-10-12","kid":"julian","pts":2,"what":"Move the laundry \u00b7 Laundry room","ref":"c:2026-10-12:j4"},{"id":"mv5mpvvgj3vd","t":1791832352668,"day":"2026-10-12","kid":"julian","pts":1,"what":"Wipe the table \u00b7 Dining room","ref":"c:2026-10-12:j3"},{"id":"mv5mpx08hze1","t":1791832354136,"day":"2026-10-12","kid":"julian","pts":1,"what":"Sweep the floor \u00b7 Dining room","ref":"c:2026-10-12:j2"},{"id":"mv5mr382j43v","t":1791832408850,"day":"2026-10-12","kid":"julian","pts":1,"what":"Took initiative on cleaning","ref":"adj:mv5mr382vtlk"},{"id":"mvb78yrig7vg","t":1792169166078,"day":"2026-10-16","kid":"julian","pts":1,"what":"Adjustment","ref":"adj:mvb78yrih15m"},{"id":"mvb793za9vef","t":1792169172838,"day":"2026-10-16","kid":"teddy","pts":1,"what":"Adjustment","ref":"adj:mvb793z9ycxo"},{"id":"mvb798rpzek5","t":1792169179045,"day":"2026-10-16","kid":"teddy","pts":10,"what":"Adjustment","ref":"adj:mvb798rp8dj7"},{"id":"mvb79ckao25i","t":1792169183962,"day":"2026-10-16","kid":"theo","pts":10,"what":"Adjustment","ref":"adj:mvb79cka6djc"},{"id":"mvb79i6kj91f","t":1792169191244,"day":"2026-10-16","kid":"eli","pts":10,"what":"Adjustment","ref":"adj:mvb79i6kriz7"},{"id":"mvb7axaz3qbo","t":1792169257499,"day":"2026-10-16","kid":"julian","pts":1,"what":"Adjustment","ref":"adj:mvb7axazulmx"},{"id":"mvb7b75eibd9","t":1792169270258,"day":"2026-10-16","kid":"julian","pts":1,"what":"Adjustment","ref":"adj:mvb7b75erkui"},{"id":"mvb7bbrjr8a8","t":1792169276239,"day":"2026-10-16","kid":"teddy","pts":1,"what":"Adjustment","ref":"adj:mvb7bbrjqfdf"},{"id":"mvb7bg9f5nck","t":1792169282067,"day":"2026-10-16","kid":"julian","pts":1,"what":"Adjustment","ref":"adj:mvb7bg9f8qnn"}],"special":[{"id":"s1","title":"Move rocks","icon":"rocks","pts":5,"assign":null},{"id":"s2","title":"Clean the garage","icon":"garage","pts":5,"assign":null},{"id":"s3","title":"Sweep + vacuum upstairs hall + stairs","icon":"stairs","pts":5,"assign":null}],"store":[{"id":"r1","title":"1 hour of game time","icon":"gamepad","cost":60},{"id":"r2","title":"Candy or snack pick","icon":"candy","cost":15},{"id":"r3","title":"Pick the family movie","icon":"popcorn","cost":25},{"id":"r4","title":"TV during dinner","icon":"tv","cost":30},{"id":"r5","title":"Stay up 30 min late","icon":"moon","cost":40},{"id":"r6","title":"Pick what's for dinner","icon":"dinner","cost":40},{"id":"r7","title":"Dollar store, $5 to spend","icon":"bag","cost":50},{"id":"r9","title":"Movie at the theater (ticket + snack)","icon":"ticket","cost":200},{"id":"r8","title":"Game or DLC","icon":"cart","cost":10,"unit":"per $1","min":50}],"team":[{"id":"g3","title":"New board game","icon":"dice","cost":300},{"id":"g1","title":"Ice cream trip","icon":"icecream","cost":500},{"id":"g5","title":"Family dinner out","icon":"burger","cost":800},{"id":"g4","title":"Bowling","icon":"bowling","cost":900},{"id":"g6","title":"Trampoline park","icon":"trampoline","cost":1400},{"id":"g7","title":"Amusement park day","icon":"ferris","cost":5000}]}</script>
+<script>
+(function(){
+var CFG=JSON.parse(document.getElementById('config').textContent);
+var SEED=JSON.parse(document.getElementById('seed').textContent);
+var S={kids:CFG.kids,store:SEED.store||CFG.store,team:SEED.team||CFG.team,base:SEED.base,jarBase:SEED.jarBase,ledger:SEED.ledger,special:SEED.special};
+var API=/^https?:\/\//.test(CFG.api||"")?CFG.api:"";
+var D={add:[],del:[],delRefs:[],special:false};   // changes not yet saved
+var saving=false,loaded=false,serverEmpty=false,version=0;
+var canEdit=true,saveTimer=null,statusText='',sheetH=null,lastDay=today();
+
+var I={
+ticket:'<path d="M6 18h52v8a6 6 0 0 0 0 12v8H6v-8a6 6 0 0 0 0-12z" fill="#e2574c"/><path d="M43 19v26" stroke-dasharray="3 3" stroke-width="2"/><path d="M24 22.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="#ffd34d" stroke-width="2"/>',
+switch:'<rect x="5" y="8" width="26" height="42" rx="4" fill="#fff"/><rect x="14" y="17" width="8" height="22" rx="2" fill="#dfe8f2" stroke-width="2"/><rect x="14" y="17" width="8" height="11" rx="2" fill="#4aa3ff" stroke-width="2"/><rect x="40" y="44" width="14" height="14" rx="2" fill="#c7cede"/><path d="M47 44v-4"/><circle cx="47" cy="32" r="11" fill="#f4c542"/><circle cx="47" cy="32" r="4" fill="#d9a420" stroke-width="2"/><path d="M52 4l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" fill="#ffd34d" stroke-width="2"/>',
+trampoline:'<circle cx="32" cy="8" r="5" fill="#ffcf9e"/><path d="M32 13v13M32 17l-8-7M32 17l8-7M32 26l-6 8M32 26l6 8" stroke="#4aa3ff" stroke-width="4"/><path d="M10 46v11M54 46v11M22 49v8M42 49v8" stroke-width="3"/><ellipse cx="32" cy="45" rx="26" ry="7" fill="#2d3250"/><ellipse cx="32" cy="45" rx="20" ry="4.5" fill="#4cbf6a" stroke-width="2"/>',
+ferris:'<path d="M18 58l14-32 14 32M12 58h40" stroke-width="3"/><circle cx="32" cy="26" r="20"/><path d="M32 6v40M12 26h40M18 12l28 28M46 12 18 40" stroke-width="2"/><circle cx="32" cy="6" r="4" fill="#e2574c"/><circle cx="52" cy="26" r="4" fill="#4aa3ff"/><circle cx="32" cy="46" r="4" fill="#f4c542"/><circle cx="12" cy="26" r="4" fill="#4cbf6a"/><circle cx="46" cy="12" r="3.5" fill="#ff8fc0"/><circle cx="46" cy="40" r="3.5" fill="#ff8a4c"/><circle cx="18" cy="40" r="3.5" fill="#8a6cf0"/><circle cx="18" cy="12" r="3.5" fill="#bfe6ff"/><circle cx="32" cy="26" r="3" fill="#fff"/>',
+dehumidifier:'<rect x="14" y="7" width="36" height="50" rx="6" fill="#dfe8f2"/><path d="M20 15h24M20 20h24M20 25h24" stroke-width="2.5"/><rect x="18" y="33" width="28" height="18" rx="3" fill="#bfe6ff"/><path d="M32 36c-3 4-4.5 6.5-4.5 8.5a4.5 4.5 0 0 0 9 0c0-2-1.5-4.5-4.5-8.5z" fill="#4aa3ff" stroke-width="2"/>',
+shoes:'<g transform="translate(-2 -12) scale(.8)"><path d="M8 50V36c0-2 2-4 4-4h7l4 6c5 4 13 6 21 7l11 2c4 1 7 3 7 6v3H8z" fill="#ff8a4c"/><path d="M8 52h54v5H8z" fill="#fff"/></g><g transform="translate(6 4) scale(.85)"><path d="M8 50V36c0-2 2-4 4-4h7l4 6c5 4 13 6 21 7l11 2c4 1 7 3 7 6v3H8z" fill="#4aa3ff"/><path d="M8 52h54v5H8z" fill="#fff"/><path d="M23 40l5-3M28 44l5-3" stroke="#fff" stroke-width="2.5"/></g>',
+washer:'<rect x="10" y="6" width="44" height="52" rx="5" fill="#eef1f6"/><path d="M10 17h44"/><circle cx="17" cy="11.5" r="2" fill="#5b6280" stroke="none"/><rect x="34" y="9.5" width="14" height="4" rx="2" fill="#5b6280" stroke="none"/><circle cx="32" cy="37" r="14" fill="#5b6280"/><circle cx="32" cy="37" r="9" fill="#bfe6ff" stroke-width="2"/><path d="M26 39c3-3 6 2 10-1" stroke="#4aa3ff" stroke-width="2.5"/>',
+brush:'<circle cx="16" cy="14" r="5" fill="#bfe6ff"/><circle cx="28" cy="9" r="3.5" fill="#bfe6ff"/><circle cx="48" cy="14" r="4.5" fill="#bfe6ff"/><path d="M14 40v12M20 40v12M26 40v12M32 40v12M38 40v12M44 40v12M50 40v12" stroke="#c98a00" stroke-width="3"/><rect x="9" y="26" width="46" height="15" rx="6" fill="#4aa3ff"/><rect x="22" y="20" width="20" height="9" rx="4" fill="#2d3250"/><path d="M4 56h56" stroke-width="2.5"/>',
+rocks:'<path d="M40 12h15m-5-5 5 5-5 5" stroke-width="3.5"/><path d="M5 55c0-11 6-17 14-17s12 6 12 17z" fill="#9aa3b5"/><path d="M27 55c1-15 9-23 17-23s15 9 15 23z" fill="#b8bfcc"/><path d="M17 55c0-7 4-10 8-10s8 3 8 10z" fill="#7d8597"/>',
+garage:'<path d="M4 28L32 8l28 20v29H4z" fill="#e8b46a"/><rect x="13" y="30" width="38" height="27" fill="#dfe8f2"/><path d="M13 37h38M13 44h38M13 51h38" stroke-width="2"/>',
+stairs:'<path d="M5 57V47h13V37h13V27h13V17h15v40z" fill="#c88a4a"/><path d="M5 47h13M18 37h13M31 27h13" stroke-width="2"/><path d="M5 57h54"/>',
+dinner:'<path d="M7 9v13a4.5 4.5 0 0 0 9 0V9M11.5 9v47" stroke-width="3"/><circle cx="34" cy="34" r="16" fill="#fff"/><circle cx="34" cy="34" r="9" fill="#ffd9a8" stroke-width="2"/><path d="M57 9c-4 2-5 10-5 18h5v29" fill="#cfd6e3" stroke-width="3"/>',
+icecream:'<path d="M20 32l12 28 12-28z" fill="#e8b46a"/><path d="M24 38l12 9M22 34l16 12M40 36l-13 11" stroke-width="2"/><circle cx="22" cy="28" r="7" fill="#ff8fc0"/><circle cx="42" cy="28" r="7" fill="#ff8fc0"/><circle cx="32" cy="22" r="12" fill="#ff8fc0"/><circle cx="32" cy="8" r="3.5" fill="#e2574c"/>',
+bowling:'<path d="M20 6c-4 0-5 4-4 8 1 3 2 5 1 8-3 6-5 12-4 20 1 8 3 13 7 13s6-5 7-13c1-8-1-14-4-20-1-3 0-5 1-8 1-4 0-8-4-8z" fill="#fff"/><path d="M15.6 19h8.8" stroke="#e2574c" stroke-width="3"/><circle cx="44" cy="44" r="14" fill="#5b6280"/><circle cx="40" cy="38" r="2" fill="#141833" stroke="none"/><circle cx="46.5" cy="37" r="2" fill="#141833" stroke="none"/><circle cx="44" cy="43.5" r="2" fill="#141833" stroke="none"/>',
+burger:'<path d="M9 29c0-11 10-17 23-17s23 6 23 17z" fill="#e8a54a"/><path d="M8 29h48l-4 5-4-4-4 4-4-4-4 4-4-4-4 4-4-4-4 4-4-4-4 4z" fill="#4cbf6a"/><rect x="8" y="33" width="48" height="9" rx="4.5" fill="#7a4a24"/><path d="M10 42h44v6a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6z" fill="#e8a54a"/><circle cx="24" cy="20" r="1.4" fill="#fff4cf" stroke="none"/><circle cx="33" cy="17" r="1.4" fill="#fff4cf" stroke="none"/><circle cx="42" cy="21" r="1.4" fill="#fff4cf" stroke="none"/>',
+dice:'<g transform="rotate(-12 19 30)"><rect x="6" y="17" width="26" height="26" rx="5" fill="#fff"/><circle cx="12.5" cy="23.5" r="2.4" fill="#1a1d36" stroke="none"/><circle cx="19" cy="30" r="2.4" fill="#1a1d36" stroke="none"/><circle cx="25.5" cy="36.5" r="2.4" fill="#1a1d36" stroke="none"/></g><g transform="rotate(10 44 40)"><rect x="31" y="27" width="26" height="26" rx="5" fill="#e2574c"/><circle cx="37.5" cy="33.5" r="2.4" fill="#fff" stroke="none"/><circle cx="50.5" cy="33.5" r="2.4" fill="#fff" stroke="none"/><circle cx="37.5" cy="46.5" r="2.4" fill="#fff" stroke="none"/><circle cx="50.5" cy="46.5" r="2.4" fill="#fff" stroke="none"/></g>',
+jar:'<rect x="18" y="5" width="28" height="8" rx="3" fill="#e2574c"/><path d="M20 13h24v4c6 3 8 8 8 14v19a8 8 0 0 1-8 8H20a8 8 0 0 1-8-8V31c0-6 2-11 8-14z" fill="#dff2ff"/><circle cx="32" cy="34" r="6" fill="#ffc83d" stroke-width="2.5"/><circle cx="25" cy="45" r="6" fill="#ffc83d" stroke-width="2.5"/><circle cx="39" cy="46" r="6" fill="#ffc83d" stroke-width="2.5"/>',
+broom:'<path d="M47 5 33 31" stroke-width="7"/><path d="M47 5 33 31" stroke="#c88a4a" stroke-width="3"/><path d="M25 27l14 7-3 6-14-7z" fill="#e2574c"/><path d="M22 33l14 7-6 18c-8 0-16-5-21-11z" fill="#f4c542"/><path d="M26 40l-9 12M31 43l-6 13M22 37l-10 9" stroke-width="2"/>',
+vacuum:'<rect x="40" y="6" width="6" height="24" rx="3" fill="#9aa3b5"/><rect x="34" y="3" width="18" height="7" rx="3.5" fill="#2d3250"/><rect x="12" y="47" width="38" height="9" rx="4" fill="#5b6280"/><rect x="27" y="25" width="23" height="24" rx="6" fill="#e2574c"/><rect x="32" y="30" width="13" height="9" rx="2" fill="#ffd9a8"/><circle cx="47" cy="57" r="4" fill="#2d3250"/><circle cx="7" cy="52" r="2.5" fill="#cfc7b8" stroke-width="2"/>',
+sponge:'<circle cx="18" cy="13" r="5" fill="#bfe6ff"/><circle cx="30" cy="8" r="3.5" fill="#bfe6ff"/><circle cx="44" cy="13" r="4.5" fill="#bfe6ff"/><rect x="9" y="30" width="46" height="20" rx="5" fill="#f4c542"/><rect x="9" y="23" width="46" height="10" rx="4" fill="#4cbf6a"/><circle cx="20" cy="41" r="2" fill="#d9a420" stroke="none"/><circle cx="32" cy="44" r="2.2" fill="#d9a420" stroke="none"/><circle cx="44" cy="40" r="2" fill="#d9a420" stroke="none"/>',
+toys:'<rect x="7" y="34" width="23" height="23" rx="3" fill="#4aa3ff"/><rect x="33" y="34" width="23" height="23" rx="3" fill="#e2574c"/><rect x="20" y="9" width="23" height="23" rx="3" fill="#f4c542"/><circle cx="18.5" cy="45.5" r="5" fill="#fff" stroke-width="2"/><path d="M44.5 39.5l6 11h-12z" fill="#fff" stroke-width="2"/><path d="M31.5 14l2.3 4.7 5.2.8-3.8 3.6.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.6 5.2-.8z" fill="#fff" stroke-width="2"/>',
+toilet:'<rect x="11" y="7" width="20" height="26" rx="4" fill="#fff"/><path d="M15 13h7" stroke-width="2.5"/><path d="M9 33h42c0 9-6 15-15 16l2 9H19l1-10c-7-2-11-8-11-15z" fill="#fff"/><rect x="7" y="29" width="46" height="6" rx="3" fill="#bfe6ff"/><path d="M52 8l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#ffd34d" stroke-width="2"/>',
+tp:'<path d="M26 41h24v17l-3-2-3 2-3-2-3 2-3-2-3 2-3-2-3 2z" fill="#fff"/><path d="M27 48h22" stroke-width="2" stroke-dasharray="2 3"/><circle cx="26" cy="26" r="16" fill="#fff"/><circle cx="26" cy="26" r="5.5" fill="#c9b79a"/>',
+basket:'<path d="M13 28c1-9 8-11 12-7 3-7 12-7 14 0 4-4 11-2 12 7z" fill="#4aa3ff"/><path d="M40 24c3-4 9-3 10 4" fill="#ff8fc0" stroke-width="2.5"/><path d="M7 28h50l-6 29H13z" fill="#e8b46a"/><path d="M10 38h44M12 47h40" stroke-width="2"/><path d="M22 28l1 29M42 28l-1 29" stroke-width="2"/><rect x="26" y="31" width="12" height="4" rx="2" fill="#7a5426" stroke-width="2"/>',
+plates:'<ellipse cx="32" cy="49" rx="24" ry="7" fill="#fff"/><ellipse cx="32" cy="41" rx="24" ry="7" fill="#fff"/><ellipse cx="32" cy="33" rx="24" ry="7" fill="#fff"/><ellipse cx="32" cy="33" rx="12" ry="3.5" fill="#dfeaf5" stroke-width="2"/><path d="M50 8l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#ffd34d" stroke-width="2"/><path d="M14 12l1.4 3.6 3.6 1.4-3.6 1.4L14 22l-1.4-3.6L9 17l3.6-1.4z" fill="#ffd34d" stroke-width="2"/>',
+dishwasher:'<rect x="9" y="7" width="46" height="51" rx="5" fill="#cfd6e3"/><path d="M9 18h46" /><rect x="22" y="23" width="20" height="4" rx="2" fill="#5b6280" stroke-width="2"/><circle cx="16" cy="12.5" r="2" fill="#5b6280" stroke="none"/><circle cx="47" cy="12.5" r="2.4" fill="#4cbf6a" stroke="none"/><circle cx="32" cy="43" r="10" fill="#fff"/><circle cx="32" cy="43" r="5" fill="#f3efe6" stroke-width="2"/><circle cx="28" cy="40" r="2.2" fill="#b07a3c" stroke="none"/><circle cx="36" cy="46" r="1.8" fill="#b07a3c" stroke="none"/><circle cx="35" cy="38.5" r="1.4" fill="#b07a3c" stroke="none"/>',
+pot:'<circle cx="21" cy="14" r="6" fill="#bfe6ff"/><circle cx="33" cy="9" r="4" fill="#bfe6ff"/><circle cx="43" cy="16" r="5" fill="#bfe6ff"/><path d="M12 28h40v17a11 11 0 0 1-11 11H23a11 11 0 0 1-11-11z" fill="#9aa3b5"/><path d="M11 35H4M53 35h7" stroke-width="5"/><rect x="8" y="23" width="48" height="7" rx="3.5" fill="#c7cede"/>',
+trash:'<path d="M14 21h36l-4 36H18z" fill="#6f9a5b"/><rect x="9" y="14" width="46" height="8" rx="3" fill="#8fbf7a"/><rect x="26" y="8" width="12" height="7" rx="2" fill="#8fbf7a"/><path d="M25 29l1.5 21M39 29l-1.5 21M32 29v21" stroke-width="2"/>',
+stove:'<ellipse cx="22" cy="10" rx="7" ry="2.5" fill="#2d3250" stroke-width="2"/><ellipse cx="42" cy="10" rx="7" ry="2.5" fill="#2d3250" stroke-width="2"/><rect x="9" y="13" width="46" height="45" rx="4" fill="#ece7df"/><path d="M9 23h46"/><circle cx="17" cy="18" r="2" fill="#2d3250" stroke="none"/><circle cx="25" cy="18" r="2" fill="#2d3250" stroke="none"/><circle cx="39" cy="18" r="2" fill="#2d3250" stroke="none"/><circle cx="47" cy="18" r="2" fill="#2d3250" stroke="none"/><rect x="16" y="29" width="32" height="21" rx="3" fill="#2d3250"/><path d="M21 34h22" stroke="#e2574c" stroke-width="2.5"/>',
+table:'<path d="M48 6l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#ffd34d" stroke-width="2"/><rect x="11" y="31" width="6" height="25" rx="1.5" fill="#a86f38"/><rect x="47" y="31" width="6" height="25" rx="1.5" fill="#a86f38"/><rect x="5" y="24" width="54" height="8" rx="2.5" fill="#c88a4a"/><circle cx="22" cy="17" r="5" fill="#bfe6ff" stroke-width="2"/><circle cx="32" cy="19" r="3" fill="#bfe6ff" stroke-width="2"/>',
+cabinet:'<rect x="9" y="17" width="46" height="36" rx="3" fill="#c88a4a"/><rect x="5" y="12" width="54" height="7" rx="2.5" fill="#a86f38"/><path d="M32 19v34"/><circle cx="27.5" cy="35" r="2.2" fill="#f4c542" stroke-width="2"/><circle cx="36.5" cy="35" r="2.2" fill="#f4c542" stroke-width="2"/><path d="M14 53v5M50 53v5" stroke-width="4"/><path d="M50 2l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" fill="#ffd34d" stroke-width="2"/>',
+gamepad:'<path d="M15 22h34c6 0 10 6 10 15 0 9-3 15-8 15-4 0-6-6-11-6H24c-5 0-7 6-11 6-5 0-8-6-8-15 0-9 4-15 10-15z" fill="#5b6280"/><path d="M19 31v10M14 36h10" stroke="#fff" stroke-width="3.5"/><circle cx="44" cy="32" r="3.2" fill="#e2574c" stroke-width="2"/><circle cx="50" cy="38" r="3.2" fill="#4cbf6a" stroke-width="2"/><circle cx="51" cy="13" r="9" fill="#fff"/><path d="M51 8.5V13l3.2 2" stroke-width="2.5"/>',
+candy:'<path d="M5 21l13 11-13 11z" fill="#e2574c"/><path d="M59 21L46 32l13 11z" fill="#e2574c"/><circle cx="32" cy="32" r="15" fill="#ff8fc0"/><path d="M24 27c6-5 15 1 11 7s-13 2-8-4" stroke="#fff" stroke-width="3"/>',
+popcorn:'<circle cx="19" cy="22" r="6" fill="#fff4cf"/><circle cx="28" cy="18" r="6.5" fill="#fff4cf"/><circle cx="37" cy="19" r="6.5" fill="#fff4cf"/><circle cx="45" cy="23" r="6" fill="#fff4cf"/><circle cx="32" cy="11" r="5.5" fill="#fff4cf"/><path d="M13 26h38l-5 32H18z" fill="#fff"/><path d="M21.5 26l2 32M32 26v32M42.5 26l-2 32" stroke="#e2574c" stroke-width="5"/><path d="M13 26h38l-5 32H18z"/>',
+tv:'<path d="M24 5l8 8 8-8" stroke-width="2.5"/><rect x="6" y="13" width="52" height="34" rx="5" fill="#2d3250"/><rect x="11" y="18" width="42" height="24" rx="3" fill="#4aa3ff"/><path d="M15 38l9-10 7 7 5-5 13 8" stroke="#fff" stroke-width="2.5"/><ellipse cx="32" cy="56" rx="17" ry="5" fill="#fff"/><ellipse cx="32" cy="56" rx="8" ry="2" fill="#ffb27a" stroke-width="2"/>',
+moon:'<path d="M38 7a23 23 0 1 0 19 33A18 18 0 0 1 38 7z" fill="#f4c542"/><path d="M50 8l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" fill="#fff" stroke-width="2"/><circle cx="56" cy="27" r="2" fill="#fff" stroke-width="1.5"/><circle cx="27" cy="33" r="3" fill="#d9a420" stroke="none"/><circle cx="20" cy="44" r="2" fill="#d9a420" stroke="none"/>',
+pizza:'<path d="M8 14c15-7 33-7 48 0L32 59z" fill="#f4c542"/><path d="M8 14c15-7 33-7 48 0l-2.6 5.5c-13-5.5-29.8-5.5-42.8 0z" fill="#d9903f"/><circle cx="25" cy="25" r="4.5" fill="#e2574c" stroke-width="2"/><circle cx="38" cy="27" r="4" fill="#e2574c" stroke-width="2"/><circle cx="31" cy="39" r="4" fill="#e2574c" stroke-width="2"/>',
+d20:'<path d="M32 4l24 14v28L32 60 8 46V18z" fill="#8a6cf0"/><path d="M32 18l16 25H16z" fill="#a690ff"/><path d="M32 4v14M8 18l24 0M56 18H32M8 18l8 25M56 18l-8 25M8 46l8-3M56 46l-8-3M16 43l16 17 16-17" stroke-width="2.5"/>',
+bag:'<path d="M23 21v-5a9 9 0 0 1 18 0v5" /><path d="M11 21h42l-3 36H14z" fill="#4cbf6a"/><path d="M38 30c-1.5-3-11-3.5-11 1.5 0 5.5 11 3 11 8.5 0 5-9.5 5-11.5 1.5M32.5 26v24" stroke="#fff" stroke-width="3"/>',
+map:'<path d="M5 14l17-6 20 6 17-6v42l-17 6-20-6-17 6z" fill="#f3dfb0"/><path d="M22 8v42M42 14v42" stroke-width="2"/><path d="M11 44c6-10 14 1 20-8s10-12 15-14" stroke="#e2574c" stroke-width="2.5" stroke-dasharray="3 4"/><path d="M46 15l7 7M53 15l-7 7" stroke="#e2574c" stroke-width="3.5"/>',
+duo:'<path d="M44 5.5c-2-3-7-2.4-7 1.8 0 4 7 8.2 7 8.2s7-4.2 7-8.2c0-4.2-5-4.8-7-1.8z" fill="#e2574c" stroke-width="2"/><circle cx="21" cy="16" r="7" fill="#ffcf9e"/><path d="M11 57V35a10 10 0 0 1 20 0v22z" fill="#4aa3ff"/><circle cx="45" cy="28" r="6" fill="#ffcf9e"/><path d="M37 57V44a8 8 0 0 1 16 0v13z" fill="#ff8a4c"/><path d="M30 42h8" stroke-width="3.5"/>',
+tent:'<path d="M2 57h60" /><path d="M6 56L32 12l26 44z" fill="#ff8a4c"/><path d="M32 24L21 56h22z" fill="#2d3250"/><path d="M32 12l-4-6M32 12l4-6" stroke-width="2.5"/><path d="M50 8l1.4 3.6 3.6 1.4-3.6 1.4L50 18l-1.4-3.6L45 13l3.6-1.4z" fill="#fff" stroke-width="1.8"/>',
+cart:'<path d="M14 6h36v41l-6 8H14z" fill="#9aa3b5"/><rect x="20" y="13" width="24" height="22" rx="2" fill="#e2574c"/><path d="M32 17.5l2.4 4.8 5.2.8-3.8 3.6.9 5.2L32 29.5l-4.7 2.4.9-5.2-3.8-3.6 5.2-.8z" fill="#ffd34d" stroke-width="2"/><path d="M21 47v5M27 47v5M33 47v5M39 47v5" stroke-width="2.5"/>',
+star:'<path d="M32 6l7.6 15.4 17 2.5-12.3 12 2.9 16.9L32 44.8l-15.2 8 2.9-16.9-12.3-12 17-2.5z" fill="#f4c542"/>',
+fridge:'<rect x="14" y="4" width="36" height="56" rx="5" fill="#dfe8f2"/><path d="M14 24h36"/><path d="M20 11v7M20 30v12" stroke-width="4"/><circle cx="40" cy="12" r="3" fill="#e2574c" stroke-width="2"/><rect x="34" y="32" width="9" height="7" rx="1.5" fill="#4aa3ff" stroke-width="2"/>',
+window:'<rect x="10" y="7" width="44" height="46" rx="3" fill="#bfe6ff"/><path d="M32 7v46M10 30h44"/><path d="M16 23l8-9M38 46l9-10" stroke="#fff" stroke-width="3"/><rect x="5" y="52" width="54" height="6" rx="2" fill="#c88a4a"/>',
+car:'<g transform="translate(0 6)"><path d="M5 40v-9l9-2 8-11h20l9 11 8 2v9z" fill="#4aa3ff"/><path d="M24 21h7v8H17zM35 21h6l7 8H35z" fill="#bfe6ff" stroke-width="2"/><circle cx="18" cy="41" r="6.5" fill="#2d3250"/><circle cx="46" cy="41" r="6.5" fill="#2d3250"/><circle cx="18" cy="41" r="2" fill="#cfd6e3" stroke="none"/><circle cx="46" cy="41" r="2" fill="#cfd6e3" stroke="none"/></g><path d="M54 6l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" fill="#ffd34d" stroke-width="2"/>',
+couch:'<rect x="10" y="16" width="44" height="22" rx="6" fill="#8a6cf0"/><rect x="13" y="35" width="38" height="13" rx="3" fill="#a690ff"/><rect x="3" y="27" width="13" height="24" rx="5" fill="#7a5ce0"/><rect x="48" y="27" width="13" height="24" rx="5" fill="#7a5ce0"/><path d="M9 51v6M55 51v6" stroke-width="4"/>',
+baseboard:'<rect x="4" y="7" width="56" height="38" fill="#f3e6d3"/><rect x="4" y="43" width="56" height="11" fill="#fff"/><path d="M2 58h60"/><rect x="33" y="31" width="19" height="13" rx="3" fill="#f4c542"/><rect x="33" y="28" width="19" height="6" rx="2.5" fill="#4cbf6a"/><path d="M12 48h14" stroke-width="2"/>',
+tub:'<circle cx="34" cy="19" r="6" fill="#bfe6ff"/><circle cx="45" cy="20" r="5" fill="#bfe6ff"/><circle cx="25" cy="21" r="4" fill="#bfe6ff"/><path d="M6 30h52v6c0 10-8 16-18 16H24C14 52 6 46 6 36z" fill="#fff"/><rect x="4" y="26" width="56" height="6" rx="3" fill="#dfe8f2"/><path d="M11 26V14a6 6 0 0 1 12 0" stroke-width="3.5"/><path d="M15 52l-2 6M49 52l2 6" stroke-width="3.5"/>',
+bed:'<rect x="5" y="14" width="9" height="42" rx="2" fill="#c88a4a"/><rect x="10" y="31" width="49" height="13" rx="3" fill="#fff"/><path d="M27 29h32v15H27z" fill="#4aa3ff"/><rect x="14" y="24" width="13" height="8" rx="3.5" fill="#fff"/><path d="M14 44v12M55 44v12" stroke-width="4"/>',
+mirror:'<ellipse cx="32" cy="30" rx="19" ry="25" fill="#c88a4a"/><ellipse cx="32" cy="30" rx="13.5" ry="19" fill="#bfe6ff"/><path d="M24 23l8-9M26 34l12-13" stroke="#fff" stroke-width="3"/><path d="M24 57h16" stroke-width="4"/>'
+};
+var COIN='<circle cx="32" cy="32" r="27" fill="#ffc83d"/><circle cx="32" cy="32" r="19.5" fill="#ffd96e" stroke-width="2.5"/><path d="M32 20.5l3.4 7 7.7 1.1-5.6 5.4 1.3 7.7L32 38.1l-6.8 3.6 1.3-7.7-5.6-5.4 7.7-1.1z" fill="#c98a00" stroke="none"/>';
+var CHECK='<svg class="check" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="#46d07c" stroke="#141833" stroke-width="3"/><path d="M10 17.5l5 5 9-10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var SPECIAL_ICONS=['star','rocks','garage','stairs','vacuum','broom','sponge','brush','washer','fridge','window','mirror','car','couch','baseboard','tub','bed','toilet','trash','basket','shoes','dehumidifier'];
+
+function ic(n,cls){return '<svg class="ic'+(cls?' '+cls:'')+'" viewBox="0 0 64 64" aria-hidden="true">'+(I[n]||I.star)+'</svg>';}
+function coin(){return '<svg class="ic" viewBox="0 0 64 64" aria-hidden="true">'+COIN+'</svg>';}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pad(n){return String(n).padStart(2,'0');}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return ymd(new Date());}
+function week(){var d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return ymd(d);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function kv(id){return '--k:var(--'+id+');--kt:var(--'+id+'-t)';}
+function kid(id){for(var i=0;i<S.kids.length;i++)if(S.kids[i].id===id)return S.kids[i];return null;}
+function who(id){if(id==='jar')return 'Team Jar';var k=kid(id);return k?k.name:'';}
+function balance(id){var b=S.base[id]||0;S.ledger.forEach(function(e){if(e.kid===id)b+=e.pts;});return b;}
+function earnedToday(id){var t=today(),n=0;S.ledger.forEach(function(e){if(e.kid===id&&e.day===t&&e.pts>0&&e.ref&&e.ref.indexOf('c:')===0)n+=e.pts;});return n;}
+function entry(r){for(var i=0;i<S.ledger.length;i++)if(S.ledger[i].ref===r)return S.ledger[i];return null;}
+function hasRef(r){return !!entry(r);}
+function removeRef(r){S.ledger=S.ledger.filter(function(e){return e.ref!==r;});D.add=D.add.filter(function(e){return e.ref!==r;});D.delRefs.push(r);}
+function removeId(id){S.ledger=S.ledger.filter(function(e){return e.id!==id;});D.add=D.add.filter(function(e){return e.id!==id;});D.del.push(id);}
+function add(k,pts,what,ref){var e={id:uid(),t:Date.now(),day:today(),kid:k,pts:pts,what:what,ref:ref||null};S.ledger.push(e);D.add.push(e);}
+function choreDone(c){return hasRef('c:'+today()+':'+c.id);}
+function superRef(k,i){return 'u:'+week()+':'+k.id+':'+i;}
+function jarShare(id){var n=(S.jarBase&&S.jarBase[id])||0;S.ledger.forEach(function(e){if(e.kid===id&&e.ref&&e.ref.indexOf('jt:')===0)n-=e.pts;});return n;}
+function specialRef(it){return 's:'+week()+':'+it.id;}
+function assigned(it){return it.assign&&it.assign.w===week()?it.assign.kid:null;}
+function shareHtml(){
+  var tot=0,v=S.kids.map(function(k){var n=Math.max(0,jarShare(k.id));tot+=n;return n;});
+  return '<span class="shares">'+S.kids.map(function(k,i){var pc=tot?Math.round(v[i]/tot*100):0;return '<span class="share" style="'+kv(k.id)+'"><i></i>'+esc(k.name)+' '+pc+'%</span>';}).join('')+'</span>';
+}
+function tagOf(){return canEdit?'button':'div';}
+
+function choreRow(k,c){
+  var d=choreDone(c),tag=tagOf();
+  return '<'+tag+' class="chore'+(d?' done':'')+'"'+(canEdit?' data-act="chore" data-kid="'+k.id+'" data-id="'+c.id+'" aria-pressed="'+d+'"':'')+'><span class="tile">'+ic(c.icon)+(d?CHECK:'')+'</span><span class="lbl">'+esc(c.label)+'</span><span class="pts">+'+c.pts+coin()+'</span></'+tag+'>';
+}
+
+function render(){
+  var now=new Date();
+  var h='<header class="top"><div><span class="brand">Reed Chore Board</span><h1>'+esc(now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}))+'</h1></div>';
+  var jt=canEdit?'button':'div';
+  h+='<'+jt+' class="jarpill"'+(canEdit?' data-act="jar"':'')+'>'+ic('jar')+'<span class="jl">Team Jar</span><span class="jn">'+coin()+balance('jar')+'</span>'+shareHtml()+'</'+jt+'>';
+  if(canEdit){h+='<div class="tools"><button class="btn" data-act="history">History</button><span class="status" id="status">'+esc(statusText)+'</span></div>';}
+  h+='</header><div class="main">';
+  S.kids.forEach(function(k){
+    h+='<section class="kid" style="'+kv(k.id)+'"><div class="band"><div class="who2"><h2>'+esc(k.name)+'</h2><span class="ptoday">+'+earnedToday(k.id)+' today</span></div><div class="bank" aria-label="'+balance(k.id)+' coins">'+coin()+'<span>'+balance(k.id)+'</span></div>'+
+      (canEdit?'<button class="mini" data-act="adjust" data-kid="'+k.id+'" aria-label="Adjust '+esc(k.name)+' coins">±</button>':'')+'</div>';
+    h+='<div class="rooms">';
+    var rooms=[];k.chores.forEach(function(c){if(rooms.indexOf(c.room)<0)rooms.push(c.room);});
+    rooms.forEach(function(r){
+      var list=k.chores.filter(function(c){return c.room===r;});
+      h+='<div class="room">'+(list[0].nohead?'':'<h3>'+esc(r)+'</h3>')+'<div class="list">';
+      list.forEach(function(c){h+=choreRow(k,c);});
+      h+='</div></div>';
+    });
+    h+='</div>';
+    if(k.super&&k.super.length){
+      h+='<div class="super"><h3>'+ic('star')+'Super Chores</h3><div class="list">';
+      k.super.forEach(function(sc,i){
+        var sd=hasRef(superRef(k,i)),tag=tagOf();
+        h+='<'+tag+' class="chore'+(sd?' done':'')+'"'+(canEdit?' data-act="super" data-kid="'+k.id+'" data-i="'+i+'" aria-pressed="'+sd+'"':'')+'><span class="tile">'+ic(sc.icon)+(sd?CHECK:'')+'</span><span class="lbl">'+esc(sc.label)+'</span><span class="pts">+'+sc.pts+coin()+'</span></'+tag+'>';
+      });
+      h+='</div></div>';
+    }
+    h+='</section>';
+  });
+  // rail
+  h+='<aside class="rail"><section class="panel special"><div class="ph"><h2>Special Cleaning</h2></div><div class="list">';
+  if(!S.special.length)h+='<p class="empty">No special cleaning right now.</p>';
+  S.special.forEach(function(it){
+    var e=entry(specialRef(it)),wid=e?e.kid:assigned(it),w=wid?kid(wid):null,tag=tagOf();
+    h+='<'+tag+' class="sp'+(e?' done':'')+'"'+(w?' style="'+kv(w.id)+'"':'')+(canEdit?' data-act="special" data-id="'+it.id+'"':'')+'><span class="tile">'+ic(it.icon)+(e?CHECK:'')+'</span><span class="lbl">'+esc(it.title)+'</span><span class="sp-end">'+(w?'<span class="who">'+esc(w.name)+'</span>':'')+'<span class="pts">+'+it.pts+coin()+'</span></span></'+tag+'>';
+  });
+  h+='</div>'+(canEdit?'<div class="addrow"><button class="btn" data-act="addspecial">+ Add special cleaning</button></div>':'')+'</section>';
+  h+='<section class="panel store"><div class="ph"><h2>Chore Store</h2></div><div class="shop">';
+  S.store.forEach(function(it){
+    var need=it.min||it.cost,tag=tagOf();
+    h+='<'+tag+' class="item"'+(canEdit?' data-act="buy" data-id="'+it.id+'"':'')+'><span class="disc">'+ic(it.icon)+'</span><span class="nm">'+esc(it.title)+'</span><span class="meta"><span class="price">'+coin()+it.cost+(it.unit?' <small>'+esc(it.unit)+'</small>':'')+'</span><span class="can">';
+    S.kids.forEach(function(k){h+='<i class="'+(balance(k.id)>=need?'on':'')+'" style="'+kv(k.id)+'" title="'+esc(k.name)+'"></i>';});
+    h+='</span></span></'+tag+'>';
+  });
+  var jar=balance('jar');
+  h+='</div><h3 class="sub">'+ic('jar')+'Team Jar rewards</h3><div class="shop">';
+  S.team.forEach(function(it){
+    var tag=tagOf(),pct=Math.max(0,Math.min(100,Math.round(jar/it.cost*100)));
+    h+='<'+tag+' class="item team'+(jar>=it.cost?' ready':'')+'"'+(canEdit?' data-act="team" data-id="'+it.id+'"':'')+'><span class="disc">'+ic(it.icon)+'</span><span class="nm">'+esc(it.title)+'</span><span class="meta"><span class="price">'+coin()+it.cost+'</span><span class="bar"><i style="width:'+pct+'%"></i></span></span></'+tag+'>';
+  });
+  h+='</div>'+(canEdit?'<div class="addrow"><button class="btn" data-act="addreward">+ Add store item</button></div>':'')+'</section></aside></div>';
+  document.getElementById('stage').innerHTML=h;
+}
+
+function fit(){
+  var w=window.innerWidth,hh=window.innerHeight,tv=w>=1000&&w/hh>=1.25,st=document.getElementById('stage');
+  var was=document.documentElement.classList.contains('tv');document.documentElement.classList.toggle('tv',tv);canEdit=!tv;if(was!==tv&&typeof render==='function'&&window.__ready)render();
+  if(tv){var s=Math.min(w/1920,hh/1080);st.style.transform='translate('+((w-1920*s)/2)+'px,'+((hh-1080*s)/2)+'px) scale('+s+')';}
+  else st.style.transform='';
+}
+
+/* ---- saving ---- */
+function showNote(t){var n=document.getElementById('note');if(!n){n=document.createElement('div');n.id='note';n.className='note';document.body.appendChild(n);}n.textContent=t;n.hidden=false;clearTimeout(showNote.t);showNote.t=setTimeout(function(){n.hidden=true;},8000);}
+function setStatus(s){statusText=s;var el=document.getElementById('status');if(el)el.textContent=s;}
+function changed(){render();setStatus('Saving…');clearTimeout(saveTimer);saveTimer=setTimeout(save,800);}
+function markSpecial(){D.specialSnap=JSON.parse(JSON.stringify(S.special));D.storeSnap=JSON.parse(JSON.stringify(S.store));D.teamSnap=JSON.parse(JSON.stringify(S.team));if(saving)D.dirtyAgain=true;}
+function pending(){return D.add.length||D.del.length||D.delRefs.length||D.special;}
+function reapply(){ // put this phone's unsaved changes back on top of fresh server data
+  var dr={};D.delRefs.forEach(function(r){dr[r]=1;});var di={};D.del.forEach(function(x){di[x]=1;});
+  S.ledger=S.ledger.filter(function(e){return !di[e.id]&&!(e.ref&&dr[e.ref]);});
+  var have={};S.ledger.forEach(function(e){have[e.id]=1;});
+  D.add.forEach(function(e){if(!have[e.id])S.ledger.push(e);});
+  if(D.special&&D.specialSnap){S.special=D.specialSnap;S.store=D.storeSnap;S.team=D.teamSnap;}
+}
+function takeServer(d){
+  if(!d){serverEmpty=true;return;}
+  serverEmpty=false;version=d.version||0;
+  S.base=d.base||{};S.jarBase=d.jarBase||{};S.ledger=d.ledger||[];S.special=d.special||[];if(d.store)S.store=d.store;if(d.team)S.team=d.team;
+}
+function post(body){
+  return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){return r.json();});
+}
+function save(){
+  if(!API)return;
+  if(saving){clearTimeout(saveTimer);saveTimer=setTimeout(save,700);return;}
+  if(!pending()&&!serverEmpty){setStatus('Saved');return;}
+  var body={add:D.add,del:D.del,delRefs:D.delRefs,special:D.special?S.special:null,store:D.special?S.store:null,team:D.special?S.team:null};
+  if(serverEmpty)body.seed={base:SEED.base,jarBase:SEED.jarBase,ledger:SEED.ledger,special:SEED.special,store:S.store,team:S.team};
+  var sent={add:D.add.length,del:D.del.length,delRefs:D.delRefs.length,special:D.special};
+  saving=true;setStatus('Saving…');
+  post(body).then(function(res){
+    saving=false;
+    if(!res||!res.ok){
+      setStatus('Not saved. Retrying…');saveTimer=setTimeout(save,4000);return;
+    }
+    D.add=D.add.slice(sent.add);D.del=D.del.slice(sent.del);D.delRefs=D.delRefs.slice(sent.delRefs);
+    if(sent.special&&D.special===sent.special&&!D.dirtyAgain)D.special=false;D.dirtyAgain=false;
+    takeServer(res.data);reapply();render();
+    if(pending())save();else setStatus('Saved');
+  },function(){saving=false;setStatus('Offline. Retrying…');saveTimer=setTimeout(save,5000);});
+}
+function refresh(){
+  if(!API||saving||sheetH)return;
+  fetch(API).then(function(r){return r.json();}).then(function(res){
+    if(!res||!res.ok||saving||sheetH)return;
+    loaded=true;takeServer(res.data);reapply();render();
+  },function(){});
+}
+/* ---- sheet ---- */
+function openSheet(title,body,handlers){
+  sheetH=handlers||{};
+  var el=document.getElementById('sheet');
+  el.innerHTML='<div class="scrim" data-s="close"></div><div class="sheet-card" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><div class="sh-head"><h2>'+esc(title)+'</h2><button class="x" data-s="close" aria-label="Close">×</button></div><div class="sheet-body">'+body+'</div></div>';
+  el.hidden=false;
+}
+function setBody(b){var x=document.querySelector('#sheet .sheet-body');if(x)x.innerHTML=b;}
+function closeSheet(){var el=document.getElementById('sheet');el.hidden=true;el.innerHTML='';sheetH=null;}
+function kidButtons(cost,act,sel){return '<div class="kidpick">'+S.kids.map(function(k){var b=balance(k.id);return '<button class="btn k'+(sel===k.id?' sel':'')+'" style="'+kv(k.id)+'" data-s="'+act+'" data-kid="'+k.id+'"'+(cost!=null&&b<cost?' disabled':'')+'>'+esc(k.name)+'<small>'+b+' coins</small></button>';}).join('')+'</div>';}
+
+function toggleChore(kId,cId){
+  var k=kid(kId),c=k.chores.filter(function(x){return x.id===cId;})[0],ref='c:'+today()+':'+cId;
+  if(hasRef(ref))removeRef(ref);else add(kId,c.pts,c.label+' · '+c.room,ref);
+  changed();
+}
+function toggleSuper(kId,i){
+  var k=kid(kId),sc=k.super[i],ref=superRef(k,i);
+  if(!sc)return;
+  if(hasRef(ref))removeRef(ref);else add(kId,sc.pts,'Super Chore: '+sc.label,ref);
+  changed();
+}
+function openBuy(id){
+  var it=S.store.filter(function(s){return s.id===id;})[0],amt=5,armed=false;if(!it)return;
+  function cost(){return it.unit?amt*it.cost:it.cost;}
+  function draw(){return (it.unit?'<div class="stepper"><button class="btn" data-s="dec" aria-label="Less">−</button><span class="sv">$'+amt+' · '+cost()+' coins</span><button class="btn" data-s="inc" aria-label="More">+</button></div>':'<p class="lead">Costs '+cost()+' coins. Who is buying?</p>')+kidButtons(cost(),'pick')+'<div class="row"><button class="btn warn" data-s="rm">'+(armed?'Tap again to remove':'Remove from store')+'</button></div>';}
+  openSheet(it.title,draw(),{
+    rm:function(){if(!armed){armed=true;setBody(draw());return;}S.store=S.store.filter(function(x){return x.id!==id;});D.special=true;markSpecial();closeSheet();changed();},
+    inc:function(){amt=Math.min(100,amt+1);setBody(draw());},
+    dec:function(){amt=Math.max(1,amt-1);setBody(draw());},
+    pick:function(b){add(b.dataset.kid,-cost(),'Bought: '+it.title+(it.unit?' ($'+amt+')':''),'buy:'+uid());closeSheet();changed();}
+  });
+}
+function openTeam(id){
+  var it=S.team.filter(function(s){return s.id===id;})[0],jar=balance('jar'),armed=false;if(!it)return;
+  function draw(){return '<p class="lead">Costs '+it.cost+' coins. The Team Jar has '+jar+'.'+(jar<it.cost?' The kids need '+(it.cost-jar)+' more.':'')+'</p><div class="row"><button class="btn gold" data-s="buy"'+(jar<it.cost?' disabled':'')+'>Buy with the Team Jar</button></div><div class="row"><button class="btn warn" data-s="rm">'+(armed?'Tap again to remove':'Remove from store')+'</button></div>';}
+  openSheet(it.title,draw(),{
+    rm:function(){if(!armed){armed=true;setBody(draw());return;}S.team=S.team.filter(function(x){return x.id!==id;});D.special=true;markSpecial();closeSheet();changed();},
+    buy:function(){add('jar',-it.cost,'Team reward: '+it.title,'tbuy:'+uid());closeSheet();changed();}
+  });
+}
+function openJar(){
+  var sel=null,amt=10;
+  function draw(){return '<p class="lead">The Team Jar has '+balance('jar')+' coins. Who is adding coins?</p>'+kidButtons(null,'who',sel)+
+    '<div class="stepper"><button class="btn" data-s="dec" aria-label="Fewer coins">−</button><span class="sv">'+amt+' coins</span><button class="btn" data-s="inc" aria-label="More coins">+</button></div>'+
+    '<div class="row"><button class="btn gold" data-s="go"'+(!sel||balance(sel)<amt?' disabled':'')+'>Add to the Team Jar</button></div>';}
+  openSheet('Add to the Team Jar',draw(),{
+    who:function(b){sel=b.dataset.kid;setBody(draw());},
+    inc:function(){amt=Math.min(500,amt+5);setBody(draw());},
+    dec:function(){amt=Math.max(5,amt-5);setBody(draw());},
+    go:function(){var x=uid();add(sel,-amt,'Put in the Team Jar','jt:'+x+':k');add('jar',amt,who(sel)+' put in coins','jt:'+x+':j');closeSheet();changed();}
+  });
+}
+function openAdjust(kId){
+  var k=kid(kId);
+  openSheet('Adjust '+k.name+'’s coins','<p class="lead">'+k.name+' has '+balance(kId)+' coins.</p><div class="field"><label for="adj-reason">Reason (shows in History)</label><input id="adj-reason" placeholder="Helped carry groceries"></div><div class="row">'+[-5,-1,1,5,10].map(function(n){return '<button class="btn'+(n>0?' gold':'')+'" data-s="go" data-n="'+n+'">'+(n>0?'+':'')+n+'</button>';}).join('')+'</div>',{
+    go:function(b){var r=(document.getElementById('adj-reason').value||'').trim();add(kId,+b.dataset.n,r||'Adjustment','adj:'+uid());closeSheet();changed();}
+  });
+}
+function openSpecial(id){
+  var armed=false,it0=S.special.filter(function(s){return s.id===id;})[0];if(!it0)return;
+  function cur(){return S.special.filter(function(s){return s.id===id;})[0]||it0;}
+  function draw(){
+    var it=cur(),e=entry(specialRef(it)),a=assigned(it);
+    var top=e?'<p class="lead">Done by '+esc(who(e.kid))+' for '+it.pts+' coins.</p><div class="row"><button class="btn" data-s="undo">Mark not done</button></div>':
+      '<p class="lead">Worth '+it.pts+' coins. Who is doing it this week?</p>'+kidButtons(null,'assign',a)+
+      '<div class="row"><button class="btn gold" data-s="done"'+(a?'':' disabled')+'>'+(a?'Mark done by '+esc(who(a)):'Pick a kid first')+'</button>'+(a?'<button class="btn" data-s="clear">Unassign</button>':'')+'</div>';
+    return top+'<div class="row"><button class="btn warn" data-s="del">'+(armed?'Tap again to remove':'Remove this job')+'</button></div>';
+  }
+  openSheet(it0.title,draw(),{
+    assign:function(b){cur().assign={w:week(),kid:b.dataset.kid};D.special=true;markSpecial();setBody(draw());changed();},
+    clear:function(){cur().assign=null;D.special=true;markSpecial();setBody(draw());changed();},
+    done:function(){var it=cur(),a=assigned(it);if(!a)return;add(a,it.pts,'Special: '+it.title,specialRef(it));closeSheet();changed();},
+    undo:function(){removeRef(specialRef(cur()));closeSheet();changed();},
+    del:function(){if(!armed){armed=true;setBody(draw());return;}S.special=S.special.filter(function(s){return s.id!==id;});D.special=true;markSpecial();closeSheet();changed();}
+  });
+}
+function openAddSpecial(){
+  var icon='star',pts=5;
+  function draw(){var title=document.getElementById('sp-title');var v=title?title.value:'';var pe=document.getElementById('sp-pts');if(pe&&+pe.value>0)pts=Math.round(+pe.value);
+    return '<div class="field"><label for="sp-title">Job</label><input id="sp-title" value="'+esc(v)+'" placeholder="Wipe the baseboards"></div><div><p class="lead" style="margin-bottom:8px">Picture</p><div class="picks">'+SPECIAL_ICONS.map(function(n){return '<button class="pick'+(n===icon?' sel':'')+'" data-s="icon" data-n="'+n+'" aria-label="'+n+'">'+ic(n)+'</button>';}).join('')+'</div></div><div class="field"><label for="sp-pts">Coins</label><input id="sp-pts" type="number" inputmode="numeric" min="1" max="999" value="'+pts+'"></div><div class="row"><button class="btn gold" data-s="save">Add job</button></div>';}
+  openSheet('New special cleaning',draw(),{
+    icon:function(b){icon=b.dataset.n;setBody(draw());},
+    save:function(){var v=(document.getElementById('sp-title').value||'').trim();if(!v){document.getElementById('sp-title').focus();return;}
+      var pv=Math.round(+document.getElementById('sp-pts').value);if(!(pv>0)){document.getElementById('sp-pts').focus();return;}pts=pv;
+      S.special.push({id:'s'+uid(),title:v,icon:icon,pts:pts,assign:null});D.special=true;markSpecial();closeSheet();changed();}
+  });
+}
+var REWARD_ICONS=['star','gamepad','candy','popcorn','tv','moon','dinner','pizza','bag','cart','ticket','icecream','burger','dice','bowling','trampoline','ferris','tent','duo','map','d20','car'];
+function openAddReward(){
+  var icon='star',cost=50,team=false;
+  function draw(){var t=document.getElementById('rw-title'),v=t?t.value:'',ce=document.getElementById('rw-cost');if(ce&&+ce.value>0)cost=Math.round(+ce.value);
+    return '<div class="field"><label for="rw-title">Reward</label><input id="rw-title" value="'+esc(v)+'" placeholder="30 min of game time"></div>'+
+      '<div class="field"><label for="rw-cost">Coins</label><input id="rw-cost" type="number" inputmode="numeric" min="1" max="99999" value="'+cost+'"></div>'+
+      '<div class="row"><button class="btn'+(!team?' gold':'')+'" data-s="solo">Each kid buys</button><button class="btn'+(team?' gold':'')+'" data-s="team">Team Jar</button></div>'+
+      '<div><p class="lead" style="margin-bottom:8px">Picture</p><div class="picks">'+REWARD_ICONS.map(function(n){return '<button class="pick'+(n===icon?' sel':'')+'" data-s="icon" data-n="'+n+'" aria-label="'+n+'">'+ic(n)+'</button>';}).join('')+'</div></div>'+
+      '<div class="row"><button class="btn gold" data-s="save">Add to store</button></div>';}
+  openSheet('New store item',draw(),{
+    icon:function(b){icon=b.dataset.n;setBody(draw());},
+    solo:function(){team=false;setBody(draw());},
+    team:function(){team=true;setBody(draw());},
+    save:function(){var v=(document.getElementById('rw-title').value||'').trim();if(!v){document.getElementById('rw-title').focus();return;}
+      var c=Math.round(+document.getElementById('rw-cost').value);if(!(c>0)){document.getElementById('rw-cost').focus();return;}
+      var item={id:(team?'g':'r')+uid(),title:v,icon:icon,cost:c};
+      if(team){S.team.push(item);S.team.sort(function(a,b){return a.cost-b.cost;});}else S.store.push(item);
+      D.special=true;markSpecial();closeSheet();changed();}
+  });
+}
+function openHistory(){
+  function draw(){
+    var rows=S.ledger.slice().sort(function(a,b){return b.t-a.t;}).slice(0,60);
+    if(!rows.length)return '<p class="lead">Nothing yet. Chores, purchases, Team Jar coins and adjustments show up here.</p>';
+    return '<ul class="hist">'+rows.map(function(e){var d=new Date(e.t);
+      return '<li style="'+kv(e.kid)+'"><span class="dot"></span><span>'+esc(who(e.kid))+' · '+esc(e.what)+'<span class="when">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}))+'</span></span><span class="amt '+(e.pts<0?'neg':'pos')+'">'+(e.pts>0?'+':'')+e.pts+'</span><button class="btn" data-s="undo" data-id="'+e.id+'">Undo</button></li>';}).join('')+'</ul>';
+  }
+  openSheet('History',draw(),{
+    undo:function(b){var e=S.ledger.filter(function(x){return x.id===b.dataset.id;})[0];if(!e)return;
+      if(e.ref&&e.ref.indexOf('jt:')===0){var base=e.ref.slice(0,e.ref.lastIndexOf(':')+1);removeRef(base+'k');removeRef(base+'j');}
+      else removeId(e.id);
+      setBody(draw());changed();}
+  });
+}
+
+document.addEventListener('click',function(ev){
+  var s=ev.target.closest('[data-s]');
+  if(s&&sheetH){var n=s.dataset.s;if(n==='close')closeSheet();else if(sheetH[n])sheetH[n](s);return;}
+  var b=ev.target.closest('[data-act]');if(!b)return;
+  var a=b.dataset.act;
+  if(!canEdit)return;
+  if(a==='chore')toggleChore(b.dataset.kid,b.dataset.id);
+  else if(a==='super')toggleSuper(b.dataset.kid,+b.dataset.i);
+  else if(a==='buy')openBuy(b.dataset.id);
+  else if(a==='team')openTeam(b.dataset.id);
+  else if(a==='jar')openJar();
+  else if(a==='adjust')openAdjust(b.dataset.kid);
+  else if(a==='special')openSpecial(b.dataset.id);
+  else if(a==='addspecial')openAddSpecial();
+  else if(a==='addreward')openAddReward();
+  else if(a==='history')openHistory();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheetH)closeSheet();});
+
+
+fit();render();window.__ready=true;
+window.addEventListener('resize',fit);
+setInterval(function(){var t=today();if(t!==lastDay){lastDay=t;render();}},60000);
+try{if(navigator.wakeLock&&document.documentElement.classList.contains('tv'))navigator.wakeLock.request('screen').catch(function(){});}catch(e){}
+if(!API){var w=document.createElement('p');w.className='diag';w.textContent='Board not connected yet.';document.getElementById('app').appendChild(w);}
+refresh();
+setInterval(refresh,20000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)refresh();});
+})();
+</script>
+</body>
+</html>
