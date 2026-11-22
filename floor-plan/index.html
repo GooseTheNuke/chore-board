@@ -134,7 +134,7 @@ tfoot td{font-weight:600;border-bottom:0}
       <div class="card" id="insp"></div>
       <div class="card"><h2>Rooms on this floor</h2><div id="list"></div></div>
       <div class="card"><h2>Tips</h2>
-        <p class="note" style="margin-top:0">Tap a piece to select it, drag to move, drag the square handles to resize. Drag the dark handles on the outline to resize the whole floor. For an L-shaped room, overlap two rooms. Keys: Delete, arrows to nudge, Ctrl+Z, Ctrl+D to duplicate, R to rotate, M to mirror.</p>
+        <p class="note" style="margin-top:0">Tap a piece to select it, drag to move, drag the square handles to resize. Drag the dark handles on the outline to resize the whole floor. For an L-shaped room, overlap two rooms. To show that two spaces are open to each other, put an Opening (under Doors, windows, stairs) on the line between them and stretch it to the width of the gap. Keys: Delete, arrows to nudge, Ctrl+Z, Ctrl+D to duplicate, R to rotate, M to mirror.</p>
       </div>
     </div>
   </div>
@@ -158,7 +158,7 @@ const CAT={
  'Bathroom':[['Toilet',20,28,'toilet'],['Vanity, 1 sink',36,21,'basin'],['Vanity, 2 sinks',60,21,'basin2'],['Tub',60,30,'tub'],['Shower 3×3',36,36,'shower'],['Shower 5×3',60,36,'shower'],['Linen cabinet',24,18,'cab']],
  'Laundry & utility':[['Washer',27,30],['Dryer',27,30],['Water heater',24,24,'round'],['Furnace',24,30],['Well tank',20,20,'round'],['Workbench',72,24],['Storage shelf',48,18]],
  'Game & hobby':[['Pool table 8 ft',100,56],['Ping pong table',108,60],['Foosball',56,30],['Theater seats (3)',96,40,'seat'],['Projector screen',120,4],['Craft table',72,36],['Drum kit',60,60,'round'],['Treadmill',36,80]],
- 'Doors, windows, stairs':[['Door 36 in',36,36,'door'],['Door 30 in',30,30,'door'],['Sliding door 6 ft',72,6,'window'],['Window 3 ft',36,6,'window'],['Window 5 ft',60,6,'window'],['Egress window',48,6,'window'],['Stairs',42,144,'stairs'],['Wood stove',36,30],['Support post',6,6]]
+ 'Doors, windows, stairs':[['Opening 3 ft',36,6,'open'],['Opening 6 ft',72,6,'open'],['Door 36 in',36,36,'door'],['Door 30 in',30,30,'door'],['Sliding door 6 ft',72,6,'window'],['Window 3 ft',36,6,'window'],['Window 5 ft',60,6,'window'],['Egress window',48,6,'window'],['Stairs',42,144,'stairs'],['Wood stove',36,30],['Support post',6,6]]
 };
 
 function example(){
@@ -263,6 +263,7 @@ function furnShape(k,w,h){ // local coords, centred on 0,0, unrotated
   const box=`<rect class="furn" x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(.15,w/6,h/6)}"/>`;
   if(k==='round') return `<ellipse class="furn" rx="${w/2}" ry="${h/2}"/>`;
   if(k==='door') return `<line class="gap" x1="${x}" y1="${y}" x2="${x+w}" y2="${y}" stroke-width=".6"/><rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}"/><line class="fl" x1="${x}" y1="${y}" x2="${x}" y2="${y+h}" style="stroke-width:2.5"/><path class="fl" d="M${x} ${y+h}A${w} ${h} 0 0 0 ${x+w} ${y}" stroke-dasharray="3 3"/>`;
+  if(k==='open') return `<rect x="${x}" y="${y}" width="${w}" height="${h}" style="fill:var(--plan)"/>`;
   if(k==='window') return `<rect class="furn" x="${x}" y="${y}" width="${w}" height="${h}" style="fill:var(--plan)"/><line class="fl" x1="${x}" y1="0" x2="${x+w}" y2="0"/>`;
   s=box;
   if(k==='bed'){const n=w>4?2:1,pw=(w-.5-(n-1)*.3)/n; for(let i=0;i<n;i++) s+=`<rect class="fl" x="${x+.25+i*(pw+.3)}" y="${y+.3}" width="${pw}" height="${Math.min(1.3,h/4)}" rx=".2"/>`; s+=`<line class="fl" x1="${x}" y1="${y+Math.min(2.1,h/2.6)}" x2="${x+w}" y2="${y+Math.min(2.1,h/2.6)}"/>`}
@@ -291,7 +292,7 @@ function render(){
   let labels='';
   const order={room:0,furn:1,wall:2};
   const items=f.items.map((it,i)=>[it,i]).sort((a,b)=>{
-    const la=a[0].k==='door'||a[0].k==='window'?3:order[a[0].t], lb=b[0].k==='door'||b[0].k==='window'?3:order[b[0].t];
+    const top=i=>i.k==='door'||i.k==='window'||i.k==='open', la=top(a[0])?3:order[a[0].t], lb=top(b[0])?3:order[b[0].t];
     return la-lb||a[1]-b[1]}).map(a=>a[0]);
   for(const it of items){
     if(it.t==='room'){
@@ -304,7 +305,7 @@ function render(){
     }else{
       const odd=(it.rot||0)%2, w0=odd?it.h:it.w, h0=odd?it.w:it.h, cx=it.x+it.w/2, cy=it.y+it.h/2;
       o+=`<g class="item" data-id="${it.id}"><g transform="translate(${cx} ${cy}) rotate(${(it.rot||0)*90})${it.flip?' scale(-1 1)':''}">${furnShape(it.k,w0,h0)}</g>`;
-      if(it.k!=='door'&&it.k!=='window'&&it.k!=='stairs'){
+      if(it.k!=='door'&&it.k!=='window'&&it.k!=='stairs'&&it.k!=='open'){
         const fs=Math.min(px(10.5),it.w/(Math.max(4,it.name.length)*.56),it.h/1.5);
         if(fs*ppf>=6.5) o+=`<text class="ft" x="${cx}" y="${cy+fs*.35}" font-size="${fs}">${esc(it.name)}</text>`;
       }
