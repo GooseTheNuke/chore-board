@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Reed Floor Plan Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a drafting table. Tool strip on top, the sheet in the middle, a spec column beside (below on phones). */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --plan:#fbfcfd; --ink:#17212c; --muted:#5b6876; --line:#cfd6de;
+  --grid:#dfe5ec; --grid5:#c3ccd7; --accent:#1c5fc4; --accent-ink:#ffffff; --wall:#26323f;
+  --furn:#ffffff; --furn-line:#4a5868; --danger:#b3261e;
+  --r0:#dbe8fb; --r1:#dff2e3; --r2:#fbeccf; --r3:#f6dfe3; --r4:#e8e2f6; --r5:#e3e7ea;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"Inter",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1620; --panel:#16212e; --plan:#111c29; --ink:#e6edf5; --muted:#93a2b3; --line:#2b3a4b;
+  --grid:#1b2939; --grid5:#2a3d53; --accent:#6aa5ff; --accent-ink:#0b1420; --wall:#dfe8f2;
+  --furn:#1d2b3b; --furn-line:#a9b9cb; --danger:#ff8a80;
+  --r0:#1c3558; --r1:#1d4030; --r2:#4a3a17; --r3:#4a2530; --r4:#33295a; --r5:#2b3540; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1620; --panel:#16212e; --plan:#111c29; --ink:#e6edf5; --muted:#93a2b3; --line:#2b3a4b;
+  --grid:#1b2939; --grid5:#2a3d53; --accent:#6aa5ff; --accent-ink:#0b1420; --wall:#dfe8f2;
+  --furn:#1d2b3b; --furn-line:#a9b9cb; --danger:#ff8a80;
+  --r0:#1c3558; --r1:#1d4030; --r2:#4a3a17; --r3:#4a2530; --r4:#33295a; --r5:#2b3540; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.4;
+  padding-block:14px 28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
+h2{font-family:var(--display);font-size:13px;font-weight:600;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.top .sp{flex:1}
+#status{font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button,select,input{font:inherit;color:var(--ink)}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;min-height:34px}
+button:hover{border-color:var(--accent)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.on{border-color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent);font-weight:600}
+button.del{color:var(--danger)}
+button:disabled{opacity:.45;cursor:default}
+select,input[type=text],input[type=number]{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-height:34px}
+.bar{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;min-width:0}
+.chips button{white-space:nowrap;flex:none;font-size:13px}
+.chips small{font-family:var(--mono);color:var(--muted);font-size:11px;margin-left:4px}
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@media (min-width:920px){.main{grid-template-columns:minmax(0,1fr) 310px;align-items:start}}
+#stage{background:var(--plan);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:74vh;min-height:260px}
+#svg{display:block;user-select:none;-webkit-user-select:none}
+.side{display:flex;flex-direction:column;gap:10px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.f label.w2{grid-column:1/-1}
+.f input{width:100%;font-family:var(--mono)}
+.f input[type=text]{font-family:var(--body)}
+.big{font-family:var(--mono);font-size:15px;margin:0 0 8px}
+.sw{display:flex;gap:6px;margin:8px 0}
+.sw button{width:28px;height:28px;min-height:0;padding:0;border-radius:50%}
+.sw button.on{box-shadow:0 0 0 2px var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:5px 4px;border-bottom:1px solid var(--line);text-align:left}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.pick{cursor:pointer} tr.pick:hover td{color:var(--accent)}
+tfoot td{font-weight:600;border-bottom:0}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.banner{background:var(--r2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.banner span{flex:1;min-width:180px}
+/* drawing */
+.grid1{stroke:var(--grid);stroke-width:1;vector-effect:non-scaling-stroke}
+.grid5{stroke:var(--grid5);stroke-width:1;vector-effect:non-scaling-stroke}
+.outline{fill:none;stroke:var(--wall)}
+.room{stroke:var(--wall);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:move}
+.rt{fill:var(--ink);font-family:var(--body);font-weight:600;text-anchor:middle;pointer-events:none}
+.rd{fill:var(--ink);font-family:var(--mono);text-anchor:middle;pointer-events:none}
+.halo{pointer-events:none}
+.halo text{paint-order:stroke;stroke:var(--plan);stroke-opacity:.85;stroke-linejoin:round}
+.dim{fill:var(--muted);font-family:var(--mono);text-anchor:middle;pointer-events:none}
+.furn{fill:var(--furn);stroke:var(--furn-line);stroke-width:1.2;vector-effect:non-scaling-stroke}
+.fl{fill:none;stroke:var(--furn-line);stroke-width:1;vector-effect:non-scaling-stroke}
+.gap{stroke:var(--plan);fill:none}
+.ft{fill:var(--furn-line);font-family:var(--body);text-anchor:middle;pointer-events:none}
+.wallL{stroke:var(--wall);stroke-linecap:butt}
+.hit{stroke:transparent;fill:transparent;cursor:move}
+.item{cursor:move;touch-action:none}
+.sel{fill:none;stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke;stroke-dasharray:5 3;pointer-events:none}
+.h{fill:var(--panel);stroke:var(--accent);stroke-width:2;vector-effect:non-scaling-stroke;touch-action:none}
+.oh{fill:var(--wall);stroke:var(--plan);stroke-width:1.5;vector-effect:non-scaling-stroke;touch-action:none}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Floor Plan Builder</h1>
+    <div class="row" id="floors"></div>
+    <span class="sp"></span>
+    <button id="exp" hidden>Save to file</button><button id="imp" hidden>Open file</button>
+    <input type="file" id="impf" accept=".json,application/json" hidden>
+    <span id="status" role="status"></span>
+  </div>
+
+  <div class="banner" id="banner" hidden>
+    <span>This is an example layout (30 × 60 ft, 1,800 sq ft). Change anything, or clear it and start from an empty outline.</span>
+    <button id="blank">Start blank</button>
+  </div>
+
+  <div class="bar">
+    <div class="row">
+      <button class="pri" id="addRoom">+ Room</button>
+      <button class="pri" id="addWall">+ Wall</button>
+      <select id="cat" aria-label="Furniture category"></select>
+      <span class="sp" style="flex:1"></span>
+      <button id="undo" title="Undo">Undo</button>
+      <button id="redo" title="Redo">Redo</button>
+      <label class="row" style="gap:4px;font-size:12px;color:var(--muted)">Snap
+        <select id="snap"><option value="1">1 ft</option><option value="0.5">6 in</option><option value="0.25">3 in</option><option value="0.0833333">1 in</option></select></label>
+      <button id="zo" aria-label="Zoom out">−</button><button id="zi" aria-label="Zoom in">+</button><button id="zf">Fit</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="main">
+    <div id="stage"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="side">
+      <div class="card" id="insp"></div>
+      <div class="card"><h2>Rooms on this floor</h2><div id="list"></div></div>
+      <div class="card"><h2>Tips</h2>
+        <p class="note" style="margin-top:0">Tap a piece to select it, drag to move, drag the square handles to resize. Drag the dark handles on the outline to resize the whole floor. For an L-shaped room, overlap two rooms. Keys: Delete, arrows to nudge, Ctrl+Z, Ctrl+D to duplicate, R to rotate.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const svg=$('svg'), stage=$('stage');
+const M=4; // margin around the floor, in feet
+const KEY='reed-floorplan-v1';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const r2=n=>Math.round(n*1000)/1000;
+
+// name, width in, depth in, drawing style
+const CAT={
+ 'Beds':[['King bed',76,80,'bed'],['Queen bed',60,80,'bed'],['Full bed',54,75,'bed'],['Twin bed',38,75,'bed'],['Twin XL bed',38,80,'bed'],['Bunk bed',42,80,'bed'],['Crib',28,52],['Nightstand',20,18],['Dresser',60,20],['Wardrobe',48,24]],
+ 'Living room':[['Couch',84,36,'seat'],['Loveseat',60,36,'seat'],['Sectional',112,90,'seat'],['Armchair',34,34,'seat'],['Recliner',36,40,'seat'],['Coffee table',48,24],['End table',22,22],['TV stand',60,18],['Bookshelf',36,12],['Desk',60,30],['Office chair',24,24,'round'],['Upright piano',60,26]],
+ 'Kitchen & dining':[['Table for 4',48,36],['Table for 6',72,38],['Table for 8',96,42],['Round table',48,48,'round'],['Chair',18,20,'seat'],['Base cabinet',36,24,'cab'],['Corner cabinet',36,36,'cab'],['Island',72,36,'cab'],['Kitchen sink',33,24,'basin'],['Range',30,26,'range'],['Refrigerator',36,31],['Dishwasher',24,24],['Pantry',24,24,'cab']],
+ 'Bathroom':[['Toilet',20,28,'toilet'],['Vanity, 1 sink',36,21,'basin'],['Vanity, 2 sinks',60,21,'basin2'],['Tub',60,30,'tub'],['Shower 3×3',36,36,'shower'],['Shower 5×3',60,36,'shower'],['Linen cabinet',24,18,'cab']],
+ 'Laundry & utility':[['Washer',27,30],['Dryer',27,30],['Water heater',24,24,'round'],['Furnace',24,30],['Well tank',20,20,'round'],['Workbench',72,24],['Storage shelf',48,18]],
+ 'Game & hobby':[['Pool table 8 ft',100,56],['Ping pong table',108,60],['Foosball',56,30],['Theater seats (3)',96,40,'seat'],['Projector screen',120,4],['Craft table',72,36],['Drum kit',60,60,'round'],['Treadmill',36,80]],
+ 'Doors, windows, stairs':[['Door 36 in',36,36,'door'],['Door 30 in',30,30,'door'],['Sliding door 6 ft',72,6,'window'],['Window 3 ft',36,6,'window'],['Window 5 ft',60,6,'window'],['Egress window',48,6,'window'],['Stairs',42,144,'stairs'],['Wood stove',36,30],['Support post',6,6]]
+};
+
+function example(){
+  const R=(name,x,y,w,h,c)=>({id:uid(),t:'room',name,x,y,w,h,c});
+  const F=(name,x,y,wi,hi,k,rot)=>{rot=rot||0;let w=wi/12,h=hi/12;if(rot%2)[w,h]=[h,w];return {id:uid(),t:'furn',name,x,y,w:r2(w),h:r2(h),k:k||'',rot}};
+  return {v:1,snap:0.5,example:true,savedAt:0,cur:'f1',floors:[{id:'f1',name:'First floor',w:60,d:30,items:[
+    R('Bedroom 1',0,0,16,14,0),R('Bath 1',0,14,9,6,3),R('Closet',9,14,7,6,5),R('Bedroom 2',0,20,16,10,0),
+    R('Hall & stairs',16,0,10,22,5),R('Bath 2',16,22,10,8,3),R('Kitchen & dining',26,0,16,30,2),R('Living & game room',42,0,18,30,1),
+    F('King bed',4.75,0.5,76,80,'bed'),F('Nightstand',2.75,0.5,20,18),F('Nightstand',11.5,0.5,20,18),F('Dresser',5.5,12,60,20),
+    F('Queen bed',5.5,22.75,60,80,'bed',2),F('Toilet',0.5,14.5,20,28,'toilet',3),F('Vanity, 1 sink',5.5,14.25,36,21,'basin'),
+    F('Stairs',17,1,42,144,'stairs'),F('Tub',16.5,27,60,30,'tub'),F('Toilet',22.5,27,20,28,'toilet',2),F('Vanity, 2 sinks',20.5,22.25,60,21,'basin2'),
+    F('Refrigerator',26.5,0.5,36,31),F('Base cabinet',29.5,0.5,36,24,'cab'),F('Range',32.5,0.5,30,26,'range'),F('Kitchen sink',35,0.5,33,24,'basin'),F('Base cabinet',37.75,0.5,36,24,'cab'),
+    F('Island',30.5,7,72,36,'cab'),F('Table for 6',30.5,19,72,38),
+    F('Chair',31.5,17,18,20,'seat'),F('Chair',34,17,18,20,'seat'),F('Chair',31.5,22.5,18,20,'seat',2),F('Chair',34,22.5,18,20,'seat',2),
+    F('Couch',47.5,8,84,36,'seat',2),F('Coffee table',49,4.5,48,24),F('TV stand',48.5,0.5,60,18),F('Pool table 8 ft',46.5,19,100,56),
+    F('Door 36 in',13,14,36,36,'door',1),F('Door 36 in',13,20,36,36,'door',0),F('Window 5 ft',5.5,-0.25,60,6,'window'),F('Window 5 ft',48.5,29.75,60,6,'window')
+  ]}]};
+}
+
+let state, sel=null, ppf=9, hist=[], redo=[], drag=null;
+try{const s=localStorage.getItem(KEY); if(s) state=JSON.parse(s);}catch(e){}
+if(!state||!state.floors||!state.floors.length) state=example();
+const fl=()=>state.floors.find(f=>f.id===state.cur)||state.floors[0];
+const item=id=>fl().items.find(i=>i.id===id);
+const snap=v=>{const s=state.snap||0.5;return r2(Math.round(v/s)*s)};
+
+/* ---------- formatting ---------- */
+function ft(v){const inch=Math.round(v*12);const f=Math.floor(inch/12),i=inch%12;return i?f+'′'+i+'″':f+'′'}
+function dims(w,h){const whole=Math.abs(w-Math.round(w))<.004&&Math.abs(h-Math.round(h))<.004;return whole?Math.round(w)+' × '+Math.round(h)+' ft':ft(w)+' × '+ft(h)}
+function sq(a){return (Math.round(a*10)/10).toLocaleString()+' sq ft'}
+
+/* ---------- saving ---------- */
+let db=null, dirty=false, writing=false, timer=null;
+function status(t){$('status').textContent=t}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){return false}}
+async function flush(){
+  if(!db||writing||!dirty) return;
+  writing=true; dirty=false;
+  try{await db.doc('plans/main').set({json:JSON.stringify(state),savedAt:state.savedAt}); status('Saved');}
+  catch(e){ if(e&&(e.code==='invalid_argument'||e.code==='revoked'||e.code==='not_granted')) db=null; status('Saved on this device only'); }
+  writing=false; if(dirty) timer=setTimeout(flush,1500);
+}
+function commit(){
+  state.savedAt=Date.now(); state.example=false;
+  const ok=saveLocal(); dirty=true;
+  status(db?'Saving…':(ok?'Saved on this device':'Not saved'));
+  clearTimeout(timer); timer=setTimeout(flush,1500);
+  render();
+}
+function push(){hist.push(JSON.stringify(state)); if(hist.length>120) hist.shift(); redo=[]}
+function undo(){if(!hist.length)return; redo.push(JSON.stringify(state)); state=JSON.parse(hist.pop()); sel=null; commit()}
+function redoF(){if(!redo.length)return; hist.push(JSON.stringify(state)); state=JSON.parse(redo.pop()); sel=null; commit()}
+async function initDb(){
+  try{
+    if(!window.claude||!window.claude.use){status(state.example?'':'Saved on this device');return}
+    const d=await window.claude.use('db'); if(!d){status(state.example?'':'Saved on this device');return}
+    const snapDoc=await Promise.race([d.doc('plans/main').get(),new Promise((_,r)=>setTimeout(()=>r({code:'unavailable'}),10000))]);
+    db=d;
+    if(snapDoc.exists){
+      const data=snapDoc.data();
+      if(data&&data.json&&(data.savedAt||0)>(state.savedAt||0)&&!drag){state=JSON.parse(data.json);sel=null;saveLocal();render();status('Saved');}
+      else if((state.savedAt||0)>(data.savedAt||0)){dirty=true;flush()} else status('Saved');
+    }else if(!state.example){dirty=true;flush()} else status('');
+  }catch(e){status(state.example?'':'Saved on this device')}
+}
+
+/* ---------- drawing ---------- */
+function furnShape(k,w,h){ // local coords, centred on 0,0, unrotated
+  const x=-w/2,y=-h/2; let s='';
+  const box=`<rect class="furn" x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(.15,w/6,h/6)}"/>`;
+  if(k==='round') return `<ellipse class="furn" rx="${w/2}" ry="${h/2}"/>`;
+  if(k==='door') return `<line class="gap" x1="${x}" y1="${y}" x2="${x+w}" y2="${y}" stroke-width=".6"/><rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}"/><line class="fl" x1="${x}" y1="${y}" x2="${x}" y2="${y+h}" style="stroke-width:2.5"/><path class="fl" d="M${x} ${y+h}A${w} ${h} 0 0 0 ${x+w} ${y}" stroke-dasharray="3 3"/>`;
+  if(k==='window') return `<rect class="furn" x="${x}" y="${y}" width="${w}" height="${h}" style="fill:var(--plan)"/><line class="fl" x1="${x}" y1="0" x2="${x+w}" y2="0"/>`;
+  s=box;
+  if(k==='bed'){const n=w>4?2:1,pw=(w-.5-(n-1)*.3)/n; for(let i=0;i<n;i++) s+=`<rect class="fl" x="${x+.25+i*(pw+.3)}" y="${y+.3}" width="${pw}" height="${Math.min(1.3,h/4)}" rx=".2"/>`; s+=`<line class="fl" x1="${x}" y1="${y+Math.min(2.1,h/2.6)}" x2="${x+w}" y2="${y+Math.min(2.1,h/2.6)}"/>`}
+  else if(k==='seat') s+=`<line class="fl" x1="${x}" y1="${y+Math.min(.7,h/4)}" x2="${x+w}" y2="${y+Math.min(.7,h/4)}"/>`;
+  else if(k==='cab') s+=`<rect class="fl" x="${x+.12}" y="${y+.12}" width="${w-.24}" height="${h-.24}" stroke-dasharray="3 3"/>`;
+  else if(k==='basin') s+=`<ellipse class="fl" rx="${Math.min(.85,w/2-.2)}" ry="${Math.min(.6,h/2-.2)}"/>`;
+  else if(k==='basin2') s+=`<ellipse class="fl" cx="${-w/4}" rx="${Math.min(.7,w/4-.2)}" ry="${Math.min(.55,h/2-.2)}"/><ellipse class="fl" cx="${w/4}" rx="${Math.min(.7,w/4-.2)}" ry="${Math.min(.55,h/2-.2)}"/>`;
+  else if(k==='toilet') s=`<rect class="furn" x="${x}" y="${y}" width="${w}" height="${h*.3}" rx=".1"/><ellipse class="furn" cy="${h*.14}" rx="${w*.42}" ry="${h*.36}"/>`+`<rect class="hit" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+  else if(k==='tub') s+=`<rect class="fl" x="${x+.25}" y="${y+.25}" width="${w-.5}" height="${h-.5}" rx="${Math.min(.6,h/3)}"/>`;
+  else if(k==='shower') s+=`<line class="fl" x1="${x}" y1="${y}" x2="${x+w}" y2="${y+h}"/><line class="fl" x1="${x+w}" y1="${y}" x2="${x}" y2="${y+h}"/>`;
+  else if(k==='range'){for(const[a,b]of[[-1,-1],[1,-1],[-1,1],[1,1]]) s+=`<circle class="fl" cx="${a*w/4}" cy="${b*h/4}" r="${Math.min(w,h)/7}"/>`}
+  else if(k==='stairs'){const n=Math.max(2,Math.round(h/0.85)); for(let i=1;i<n;i++) s+=`<line class="fl" x1="${x}" y1="${y+i*h/n}" x2="${x+w}" y2="${y+i*h/n}"/>`; s+=`<path class="fl" d="M0 ${y+h-.4}V${y+.5}M${-w/5} ${y+1.1}L0 ${y+.5}L${w/5} ${y+1.1}"/>`}
+  return s;
+}
+function render(){
+  const f=fl(), vw=f.w+2*M, vh=f.d+2*M;
+  svg.setAttribute('viewBox',`${-M} ${-M} ${vw} ${vh}`);
+  svg.setAttribute('width',Math.round(vw*ppf)); svg.setAttribute('height',Math.round(vh*ppf));
+  const px=n=>n/ppf; // pixels to feet
+  let o=`<rect id="bg" x="${-M}" y="${-M}" width="${vw}" height="${vh}" fill="transparent"/>`;
+  // grid
+  let g='';
+  for(let x=0;x<=f.w+.001;x++) g+=`<line class="${x%5?'grid1':'grid5'}" x1="${x}" y1="0" x2="${x}" y2="${f.d}"/>`;
+  for(let y=0;y<=f.d+.001;y++) g+=`<line class="${y%5?'grid1':'grid5'}" x1="0" y1="${y}" x2="${f.w}" y2="${y}"/>`;
+  o+=`<g pointer-events="none">${g}</g>`;
+  let labels='';
+  const order={room:0,furn:1,wall:2};
+  const items=f.items.map((it,i)=>[it,i]).sort((a,b)=>{
+    const la=a[0].k==='door'||a[0].k==='window'?3:order[a[0].t], lb=b[0].k==='door'||b[0].k==='window'?3:order[b[0].t];
+    return la-lb||a[1]-b[1]}).map(a=>a[0]);
+  for(const it of items){
+    if(it.t==='room'){
+      const fs=Math.min(px(13),it.w/8.5,it.h/4.2), cx=it.x+it.w/2, cy=it.y+it.h/2;
+      o+=`<g class="item" data-id="${it.id}"><rect class="room" x="${it.x}" y="${it.y}" width="${it.w}" height="${it.h}" style="fill:var(--r${it.c||0})" fill-opacity=".78"/>`;
+      o+=`</g>`;
+      if(fs*ppf>=4) labels+=`<g class="halo" stroke-width="${fs*.3}"><text class="rt" x="${cx}" y="${cy-fs*.75}" font-size="${fs}">${esc(it.name)}</text><text class="rd" x="${cx}" y="${cy+fs*.45}" font-size="${fs*.92}">${dims(it.w,it.h)}</text><text class="rd" x="${cx}" y="${cy+fs*1.6}" font-size="${fs*.86}">(${sq(it.w*it.h)})</text></g>`;
+    }else if(it.t==='wall'){
+      o+=`<g class="item" data-id="${it.id}"><line class="wallL" x1="${it.x1}" y1="${it.y1}" x2="${it.x2}" y2="${it.y2}" stroke-width=".4"/><line class="hit" x1="${it.x1}" y1="${it.y1}" x2="${it.x2}" y2="${it.y2}" stroke-width="${Math.max(1,px(22))}" style="stroke:transparent"/></g>`;
+    }else{
+      const odd=(it.rot||0)%2, w0=odd?it.h:it.w, h0=odd?it.w:it.h, cx=it.x+it.w/2, cy=it.y+it.h/2;
+      o+=`<g class="item" data-id="${it.id}"><g transform="translate(${cx} ${cy}) rotate(${(it.rot||0)*90})">${furnShape(it.k,w0,h0)}</g>`;
+      if(it.k!=='door'&&it.k!=='window'&&it.k!=='stairs'){
+        const fs=Math.min(px(10.5),it.w/(Math.max(4,it.name.length)*.56),it.h/1.5);
+        if(fs*ppf>=6.5) o+=`<text class="ft" x="${cx}" y="${cy+fs*.35}" font-size="${fs}">${esc(it.name)}</text>`;
+      }
+      o+=`</g>`;
+    }
+  }
+  // room labels sit above furniture so the sizes stay readable
+  o+=labels;
+  o+=`<rect class="outline" x="0" y="0" width="${f.w}" height="${f.d}" stroke-width=".45" pointer-events="none"/>`;
+  const dfs=Math.max(px(12),.9);
+  o+=`<text class="dim" x="${f.w/2}" y="${-M/2+dfs*.35}" font-size="${dfs}">${ft(f.w)}</text>`;
+  o+=`<text class="dim" transform="translate(${-M/2+dfs*.35} ${f.d/2}) rotate(-90)" font-size="${dfs}">${ft(f.d)}</text>`;
+  const coarse=window.matchMedia&&matchMedia('(pointer:coarse)').matches, hs=px(coarse?20:12);
+  const H=(x,y,d,cls)=>`<rect class="${cls||'h'}" data-h="${d}" x="${x-hs/2}" y="${y-hs/2}" width="${hs}" height="${hs}" rx="${hs/6}" style="cursor:${d==='a'||d==='b'?'crosshair':d==='n'||d==='s'?'ns-resize':d==='e'||d==='w'?'ew-resize':d==='ne'||d==='sw'?'nesw-resize':'nwse-resize'}"/>`;
+  o+=`<g data-o="1">${H(f.w,f.d/2,'e','oh')}${H(f.w/2,f.d,'s','oh')}${H(f.w,f.d,'se','oh')}</g>`;
+  const s=sel&&item(sel);
+  if(s){
+    if(s.t==='wall'){
+      const len=Math.hypot(s.x2-s.x1,s.y2-s.y1), mx=(s.x1+s.x2)/2, my=(s.y1+s.y2)/2;
+      o+=`<line class="sel" x1="${s.x1}" y1="${s.y1}" x2="${s.x2}" y2="${s.y2}"/><text class="dim" style="fill:var(--accent)" x="${mx}" y="${my-px(9)}" font-size="${px(12)}">${ft(len)}</text>`;
+      o+=`<g data-hs="1">${H(s.x1,s.y1,'a')}${H(s.x2,s.y2,'b')}</g>`;
+    }else{
+      const x=s.x,y=s.y,w=s.w,h=s.h;
+      o+=`<rect class="sel" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+      if(s.t==='furn') o+=`<text class="dim" style="fill:var(--accent)" x="${x+w/2}" y="${y-px(7)}" font-size="${px(11)}">${ft(w)} × ${ft(h)}</text>`;
+      o+=`<g data-hs="1">${H(x,y,'nw')}${H(x+w,y,'ne')}${H(x,y+h,'sw')}${H(x+w,y+h,'se')}`;
+      if(w*ppf>44) o+=H(x+w/2,y,'n')+H(x+w/2,y+h,'s');
+      if(h*ppf>44) o+=H(x,y+h/2,'w')+H(x+w,y+h/2,'e');
+      o+=`</g>`;
+    }
+  }
+  svg.innerHTML=o;
+  if(!drag){renderSide();renderFloors()}
+  else liveFields();
+  $('undo').disabled=!hist.length; $('redo').disabled=!redo.length;
+  $('banner').hidden=!state.example;
+}
+function renderFloors(){
+  $('floors').innerHTML=state.floors.map(f=>`<button data-f="${f.id}" class="${f.id===fl().id?'on':''}">${esc(f.name)}</button>`).join('')+`<button data-f="+">+ Floor</button>`;
+}
+function liveFields(){ // keep numbers current while dragging
+  const s=sel&&item(sel), f=fl();
+  const set=(id,v)=>{const el=$(id); if(el) el.value=v};
+  if(s&&s.t!=='wall'){set('iw',r2(s.w));set('ih',r2(s.h)); const b=$('ibig'); if(b) b.textContent=dims(s.w,s.h)+'  ('+sq(s.w*s.h)+')'}
+  else if(s){const b=$('ibig'); if(b) b.textContent='Length '+ft(Math.hypot(s.x2-s.x1,s.y2-s.y1))}
+  else{set('fw',r2(f.w));set('fd',r2(f.d));set('fa',Math.round(f.w*f.d*10)/10)}
+}
+function renderSide(){
+  const f=fl(), s=sel&&item(sel), act=document.activeElement&&document.activeElement.id;
+  let h='';
+  if(!s){
+    h=`<h2>This floor</h2><p class="big" id="ibig">${dims(f.w,f.d)}  (${sq(f.w*f.d)})</p>
+    <div class="f"><label class="w2">Name<input type="text" id="fn" value="${esc(f.name)}"></label>
+    <label>Width (ft)<input type="number" id="fw" min="4" max="300" step="0.5" value="${r2(f.w)}"></label>
+    <label>Depth (ft)<input type="number" id="fd" min="4" max="300" step="0.5" value="${r2(f.d)}"></label>
+    <label class="w2">Square feet (keeps the width, changes the depth)<input type="number" id="fa" min="16" step="10" value="${Math.round(f.w*f.d*10)/10}"></label></div>
+    <div class="row" style="margin-top:10px"><button id="fdup">Copy floor</button><button id="fclr">Clear floor</button>${state.floors.length>1?'<button class="del" id="fdel">Delete floor</button>':''}</div>`;
+  }else if(s.t==='wall'){
+    h=`<h2>Wall</h2><p class="big" id="ibig">Length ${ft(Math.hypot(s.x2-s.x1,s.y2-s.y1))}</p>
+    <div class="row"><button id="wstr">Straighten</button><button id="idup">Duplicate</button><button class="del" id="idel">Delete</button></div>
+    <p class="note">Drag either end to change its length or angle.</p>`;
+  }else{
+    h=`<h2>${s.t==='room'?'Room':'Item'}</h2><p class="big" id="ibig">${dims(s.w,s.h)}  (${sq(s.w*s.h)})</p>
+    <div class="f"><label class="w2">Name<input type="text" id="in" value="${esc(s.name)}"></label>
+    <label>Width (ft)<input type="number" id="iw" min="0.25" step="0.25" value="${r2(s.w)}"></label>
+    <label>Depth (ft)<input type="number" id="ih" min="0.25" step="0.25" value="${r2(s.h)}"></label></div>`;
+    if(s.t==='room') h+=`<div class="sw" role="group" aria-label="Room colour">${[0,1,2,3,4,5].map(c=>`<button data-c="${c}" class="${(s.c||0)===c?'on':''}" style="background:var(--r${c})" aria-label="Colour ${c+1}"></button>`).join('')}</div>`;
+    h+=`<div class="row" style="margin-top:10px"><button id="irot">Rotate</button><button id="idup">Duplicate</button><button id="ifront">To front</button><button class="del" id="idel">Delete</button></div>`;
+  }
+  $('insp').innerHTML=h;
+  if(act&&$(act)&&$('insp').contains($(act))) $(act).focus();
+  const rooms=f.items.filter(i=>i.t==='room'); let tot=0;
+  let t=rooms.length?'<table><thead><tr><th>Room</th><th class="n">Size</th><th class="n">Sq ft</th></tr></thead><tbody>':'<p class="note" style="margin:0">No rooms yet. Press “+ Room” to add one.</p>';
+  for(const r of rooms){tot+=r.w*r.h; t+=`<tr class="pick" data-pick="${r.id}"><td>${esc(r.name)}</td><td class="n">${dims(r.w,r.h).replace(' ft','')}</td><td class="n">${(Math.round(r.w*r.h*10)/10).toLocaleString()}</td></tr>`}
+  if(rooms.length){
+    t+=`</tbody><tfoot><tr><td>Rooms total</td><td></td><td class="n">${Math.round(tot).toLocaleString()}</td></tr><tr><td>Floor outline</td><td></td><td class="n">${Math.round(f.w*f.d).toLocaleString()}</td></tr>`;
+    if(state.floors.length>1) t+=`<tr><td>All floors</td><td></td><td class="n">${Math.round(state.floors.reduce((a,x)=>a+x.w*x.d,0)).toLocaleString()}</td></tr>`;
+    t+='</tfoot></table><p class="note">Overlapping rooms are counted twice in the rooms total.</p>';
+  }
+  $('list').innerHTML=t;
+}
+
+/* ---------- adding ---------- */
+function viewCentre(w,h){
+  const f=fl(), r=stage.getBoundingClientRect(), p=toFt(r.left+r.width/2,r.top+Math.min(r.height,innerHeight-r.top)/2);
+  const n=fl().items.length%5*0.5;
+  return {x:snap(Math.max(0,Math.min(f.w-w,p.x-w/2+n))),y:snap(Math.max(0,Math.min(f.d-h,p.y-h/2+n)))};
+}
+function add(it){push(); fl().items.push(it); sel=it.id; commit()}
+$('addRoom').onclick=()=>{const n=fl().items.filter(i=>i.t==='room').length, w=Math.min(12,fl().w), h=Math.min(12,fl().d), p=viewCentre(w,h); add({id:uid(),t:'room',name:'Room '+(n+1),x:p.x,y:p.y,w,h,c:n%6})};
+$('addWall').onclick=()=>{const L=Math.min(8,fl().w), p=viewCentre(L,0); add({id:uid(),t:'wall',x1:p.x,y1:p.y,x2:p.x+L,y2:p.y})};
+$('cat').innerHTML=Object.keys(CAT).map(c=>`<option>${c}</option>`).join('');
+function chips(){$('chips').innerHTML=CAT[$('cat').value].map((c,i)=>`<button data-i="${i}">${c[0]}<small>${ft(c[1]/12)}×${ft(c[2]/12)}</small></button>`).join('')}
+$('cat').onchange=chips; chips();
+$('chips').onclick=e=>{const b=e.target.closest('button'); if(!b)return; const c=CAT[$('cat').value][+b.dataset.i], w=r2(c[1]/12), h=r2(c[2]/12), p=viewCentre(w,h); add({id:uid(),t:'furn',name:c[0],x:p.x,y:p.y,w,h,k:c[3]||'',rot:0})};
+
+/* ---------- pointer work ---------- */
+function toFt(cx,cy){const p=svg.createSVGPoint(); p.x=cx; p.y=cy; const m=svg.getScreenCTM(); return m?p.matrixTransform(m.inverse()):{x:0,y:0}}
+svg.addEventListener('pointerdown',e=>{
+  if(e.button) return;
+  const hEl=e.target.closest('[data-h]'), p=toFt(e.clientX,e.clientY);
+  if(hEl){
+    const out=!!hEl.closest('[data-o]');
+    drag={mode:out?'outline':'resize',h:hEl.dataset.h,p,o:out?{w:fl().w,d:fl().d}:JSON.parse(JSON.stringify(item(sel))),moved:false,before:JSON.stringify(state)};
+    if(out) sel=null;
+  }else{
+    const g=e.target.closest('[data-id]');
+    if(!g){ return; }
+    sel=g.dataset.id;
+    drag={mode:'move',p,o:JSON.parse(JSON.stringify(item(sel))),moved:false,before:JSON.stringify(state)};
+    render();
+  }
+  e.preventDefault();
+  try{svg.setPointerCapture(e.pointerId)}catch(_){}
+});
+svg.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  const p=toFt(e.clientX,e.clientY), dx=p.x-drag.p.x, dy=p.y-drag.p.y, o=drag.o;
+  if(!drag.moved&&Math.hypot(dx,dy)*ppf<3) return;
+  drag.moved=true;
+  if(drag.mode==='outline'){
+    const f=fl(); if(drag.h.includes('e')) f.w=Math.max(4,snap(o.w+dx)); if(drag.h.includes('s')) f.d=Math.max(4,snap(o.d+dy));
+  }else{
+    const it=item(sel); if(!it){drag=null;return}
+    if(it.t==='wall'){
+      if(drag.mode==='move'){const sx=snap(o.x1+dx)-o.x1, sy=snap(o.y1+dy)-o.y1; it.x1=r2(o.x1+sx);it.y1=r2(o.y1+sy);it.x2=r2(o.x2+sx);it.y2=r2(o.y2+sy)}
+      else if(drag.h==='a'){it.x1=snap(o.x1+dx);it.y1=snap(o.y1+dy)} else {it.x2=snap(o.x2+dx);it.y2=snap(o.y2+dy)}
+    }else if(drag.mode==='move'){it.x=snap(o.x+dx);it.y=snap(o.y+dy)}
+    else{
+      const mn=0.25,h=drag.h;
+      if(h.includes('e')) it.w=Math.max(mn,r2(snap(o.x+o.w+dx)-o.x));
+      if(h.includes('s')) it.h=Math.max(mn,r2(snap(o.y+o.h+dy)-o.y));
+      if(h.includes('w')){const nx=Math.min(snap(o.x+dx),o.x+o.w-mn); it.x=nx; it.w=r2(o.x+o.w-nx)}
+      if(h.includes('n')){const ny=Math.min(snap(o.y+dy),o.y+o.h-mn); it.y=ny; it.h=r2(o.y+o.h-ny)}
+    }
+  }
+  render();
+});
+function endDrag(){
+  if(!drag) return; const d=drag; drag=null;
+  if(d.moved){hist.push(d.before); if(hist.length>120) hist.shift(); redo=[]; commit()} else render();
+}
+svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
+svg.addEventListener('click',e=>{if(e.target.id==='bg'&&sel){sel=null;render()}});
+
+/* ---------- side panel actions ---------- */
+function num(el,min){const v=parseFloat(el.value); return isFinite(v)?Math.max(min,v):null}
+$('insp').addEventListener('change',e=>{
+  const id=e.target.id, f=fl(), s=sel&&item(sel); let v;
+  if(id==='fn'){push(); f.name=e.target.value.trim()||'Floor'; commit()}
+  else if(id==='fw'&&(v=num(e.target,4))){push(); f.w=r2(v); commit()}
+  else if(id==='fd'&&(v=num(e.target,4))){push(); f.d=r2(v); commit()}
+  else if(id==='fa'&&(v=num(e.target,16))){push(); f.d=Math.round(v/f.w*100)/100; commit()}
+  else if(s&&id==='in'){push(); s.name=e.target.value.trim()||(s.t==='room'?'Room':'Item'); commit()}
+  else if(s&&id==='iw'&&(v=num(e.target,.25))){push(); s.w=r2(v); commit()}
+  else if(s&&id==='ih'&&(v=num(e.target,.25))){push(); s.h=r2(v); commit()}
+  else render();
+});
+function rotate(){const s=sel&&item(sel); if(!s||s.t==='wall')return; push(); const cx=s.x+s.w/2,cy=s.y+s.h/2; [s.w,s.h]=[s.h,s.w]; s.x=snap(cx-s.w/2); s.y=snap(cy-s.h/2); if(s.t==='furn') s.rot=((s.rot||0)+1)%4; commit()}
+function dup(){const s=sel&&item(sel); if(!s)return; push(); const c=JSON.parse(JSON.stringify(s)); c.id=uid(); if(c.t==='wall'){c.x1+=1;c.x2+=1;c.y1+=1;c.y2+=1}else{c.x+=1;c.y+=1} fl().items.push(c); sel=c.id; commit()}
+function del(){if(!sel||!item(sel))return; push(); const f=fl(); f.items=f.items.filter(i=>i.id!==sel); sel=null; commit()}
+$('insp').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return; const id=b.id, f=fl(), s=sel&&item(sel);
+  if(b.dataset.c!==undefined&&s){push(); s.c=+b.dataset.c; commit()}
+  else if(id==='irot') rotate();
+  else if(id==='idup') dup();
+  else if(id==='idel') del();
+  else if(id==='ifront'&&s){push(); f.items=f.items.filter(i=>i!==s).concat(s); commit()}
+  else if(id==='wstr'&&s){push(); if(Math.abs(s.x2-s.x1)>=Math.abs(s.y2-s.y1)) s.y2=s.y1; else s.x2=s.x1; commit()}
+  else if(id==='fdup'){push(); const c=JSON.parse(JSON.stringify(f)); c.id=uid(); c.name=f.name+' copy'; c.items.forEach(i=>i.id=uid()); state.floors.push(c); state.cur=c.id; sel=null; commit()}
+  else if(id==='fclr'){push(); f.items=[]; sel=null; commit()}
+  else if(id==='fdel'&&state.floors.length>1){push(); state.floors=state.floors.filter(x=>x!==f); state.cur=state.floors[0].id; sel=null; commit()}
+});
+$('list').addEventListener('click',e=>{const r=e.target.closest('[data-pick]'); if(r){sel=r.dataset.pick; render()}});
+$('floors').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.f==='+'){push(); const f=fl(), n={id:uid(),name:'Floor '+(state.floors.length+1),w:f.w,d:f.d,items:[]}; state.floors.push(n); state.cur=n.id; sel=null; commit()}
+  else{state.cur=b.dataset.f; sel=null; saveLocal(); render()}
+});
+$('blank').onclick=()=>{push(); state.floors=[{id:uid(),name:'First floor',w:60,d:30,items:[]}]; state.cur=state.floors[0].id; sel=null; commit()};
+$('undo').onclick=undo; $('redo').onclick=redoF;
+$('snap').value=String(state.snap||0.5); if(!$('snap').value) $('snap').value='0.5';
+$('snap').onchange=e=>{state.snap=parseFloat(e.target.value); saveLocal()};
+
+/* ---------- zoom ---------- */
+function fitPpf(){const f=fl(); return Math.max(2,(stage.clientWidth-2)/(f.w+2*M))}
+$('zi').onclick=()=>{ppf=Math.min(60,ppf*1.25); render()};
+$('zo').onclick=()=>{ppf=Math.max(fitPpf()*.6,ppf/1.25); render()};
+$('zf').onclick=()=>{ppf=fitPpf(); render()};
+
+/* ---------- keys ---------- */
+document.addEventListener('keydown',e=>{
+  const tag=(e.target.tagName||'').toLowerCase(); if(tag==='input'||tag==='select'||tag==='textarea') return;
+  const mod=e.ctrlKey||e.metaKey, k=e.key.toLowerCase();
+  if(mod&&k==='z'){e.preventDefault(); e.shiftKey?redoF():undo(); return}
+  if(mod&&k==='y'){e.preventDefault(); redoF(); return}
+  const s=sel&&item(sel); if(!s) return;
+  if(mod&&k==='d'){e.preventDefault(); dup()}
+  else if(k==='delete'||k==='backspace'){e.preventDefault(); del()}
+  else if(k==='r'&&!mod) rotate();
+  else if(k==='escape'){sel=null; render()}
+  else if(k.startsWith('arrow')){
+    e.preventDefault(); const st=state.snap||.5, dx=k==='arrowleft'?-st:k==='arrowright'?st:0, dy=k==='arrowup'?-st:k==='arrowdown'?st:0;
+    push(); if(s.t==='wall'){s.x1=r2(s.x1+dx);s.x2=r2(s.x2+dx);s.y1=r2(s.y1+dy);s.y2=r2(s.y2+dy)}else{s.x=r2(s.x+dx);s.y=r2(s.y+dy)} commit();
+  }
+});
+
+/* ---------- file save/open (hosted copy only; the artifact saves to the account) ---------- */
+if(!(window.claude&&window.claude.use)){
+  $('exp').hidden=false; $('imp').hidden=false;
+  $('exp').onclick=()=>{
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(state)],{type:'application/json'}));
+    a.download='floor-plan-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  };
+  $('imp').onclick=()=>$('impf').click();
+  $('impf').onchange=e=>{
+    const file=e.target.files[0]; if(!file) return; const rd=new FileReader();
+    rd.onload=()=>{try{const s=JSON.parse(rd.result); if(!s.floors||!s.floors.length||!s.floors[0].items) throw 0; push(); state=s; sel=null; commit(); status('Opened '+file.name)}catch(_){status('That file is not a floor plan')}};
+    rd.readAsText(file); e.target.value='';
+  };
+}
+
+ppf=Math.max(fitPpf(),9);
+render();
+status(state.example?'':'Saved on this device');
+initDb();
+})();
+</script>
+
+</html>
