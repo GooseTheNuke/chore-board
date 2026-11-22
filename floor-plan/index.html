@@ -97,6 +97,10 @@ tfoot td{font-weight:600;border-bottom:0}
 <div class="wrap">
   <div class="top">
     <h1>Floor Plan Builder</h1>
+    <div class="row">
+      <select id="plan" aria-label="Plan"></select><input type="text" id="pname" aria-label="Plan name" hidden>
+      <button id="pnew">New plan</button><button id="pcopy">Copy plan</button><button id="pren">Rename</button><button id="pdel" class="del">Delete</button>
+    </div>
     <div class="row" id="floors"></div>
     <span class="sp"></span>
     <button id="exp" hidden>Save to file</button><button id="imp" hidden>Open file</button>
@@ -184,8 +188,14 @@ function example(){
 }
 
 let state, sel=null, ppf=9, hist=[], redo=[], drag=null;
-try{const s=localStorage.getItem(KEY); if(s) state=JSON.parse(s);}catch(e){}
-if(!state||!state.floors||!state.floors.length) state=example();
+// several named plans: an index of {id,name}, and one saved copy per plan
+const IDX='reed-floorplan-index', PK=id=>'reed-floorplan-p-'+id;
+const ls={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let idx=ls.get(IDX);
+if(!idx||!idx.plans||!idx.plans.length){const old=ls.get(KEY); idx={cur:'main',plans:[{id:'main',name:'Our plan'}]}; if(old&&old.floors) ls.set(PK('main'),old)}
+if(!idx.plans.some(p=>p.id===idx.cur)) idx.cur=idx.plans[0].id;
+function loadPlan(id){let s=ls.get(PK(id)); if(!s||!s.floors||!s.floors.length) s=example(); addStarters(s); return s}
+state=loadPlan(idx.cur);
 function addStarters(s){ // plans saved before the basement and second floor starters existed get them added once
   if((s.v||1)>=2) return false;
   const ex=example().floors, has=n=>s.floors.some(f=>f.name.toLowerCase()===n.toLowerCase());
@@ -193,7 +203,6 @@ function addStarters(s){ // plans saved before the basement and second floor sta
   if(!has('Second floor')) s.floors.push(ex[2]);
   s.v=2; return true;
 }
-addStarters(state);
 const fl=()=>state.floors.find(f=>f.id===state.cur)||state.floors[0];
 const item=id=>fl().items.find(i=>i.id===id);
 const snap=v=>{const s=state.snap||0.5;return r2(Math.round(v/s)*s)};
@@ -206,11 +215,11 @@ function sq(a){return (Math.round(a*10)/10).toLocaleString()+' sq ft'}
 /* ---------- saving ---------- */
 let db=null, dirty=false, writing=false, timer=null;
 function status(t){$('status').textContent=t}
-function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state));return true}catch(e){return false}}
+function saveLocal(){const ok=ls.set(PK(idx.cur),state); ls.set(IDX,idx); return ok}
 async function flush(){
   if(!db||writing||!dirty) return;
-  writing=true; dirty=false;
-  try{await db.doc('plans/main').set({json:JSON.stringify(state),savedAt:state.savedAt}); status('Saved');}
+  writing=true; dirty=false; const id=idx.cur;
+  try{await db.doc('plans/'+id).set(payload()); const p=idx.plans.find(p=>p.id===id); if(p){p.synced=true; ls.set(IDX,idx)} status('Saved');}
   catch(e){ if(e&&(e.code==='invalid_argument'||e.code==='revoked'||e.code==='not_granted')) db=null; status('Saved on this device only'); }
   writing=false; if(dirty) timer=setTimeout(flush,1500);
 }
@@ -228,13 +237,23 @@ async function initDb(){
   try{
     if(!window.claude||!window.claude.use){status(state.example?'':'Saved on this device');return}
     const d=await window.claude.use('db'); if(!d){status(state.example?'':'Saved on this device');return}
-    const snapDoc=await Promise.race([d.doc('plans/main').get(),new Promise((_,r)=>setTimeout(()=>r({code:'unavailable'}),10000))]);
-    db=d;
-    if(snapDoc.exists){
-      const data=snapDoc.data();
-      if(data&&data.json&&(data.savedAt||0)>(state.savedAt||0)&&!drag){state=JSON.parse(data.json);sel=null;const added=addStarters(state);saveLocal();render();if(added){dirty=true;flush()}else status('Saved');}
-      else if((state.savedAt||0)>(data.savedAt||0)){dirty=true;flush()} else status('Saved');
-    }else if(!state.example){dirty=true;flush()} else status('');
+    const qs=await Promise.race([d.collection('plans').get(),new Promise((_,r)=>setTimeout(()=>r({code:'unavailable'}),10000))]);
+    db=d; let reload=false; const remote={};
+    for(const doc of qs.docs){
+      const data=doc.data(); if(!data||!data.json) continue; remote[doc.id]=data.savedAt||0;
+      const known=idx.plans.find(p=>p.id===doc.id), loc=ls.get(PK(doc.id));
+      if(!known){idx.plans.push({id:doc.id,name:data.name||'Plan',synced:true}); ls.set(PK(doc.id),JSON.parse(data.json))}
+      else{known.synced=true; if((data.savedAt||0)>((loc&&loc.savedAt)||0)){ls.set(PK(doc.id),JSON.parse(data.json)); if(data.name) known.name=data.name; if(doc.id===idx.cur) reload=true}}
+    }
+    // a plan that was saved to the account before and is gone now was deleted on another device
+    const gone=idx.plans.filter(p=>p.synced&&!(p.id in remote));
+    if(gone.length&&gone.length<idx.plans.length){gone.forEach(p=>ls.del(PK(p.id))); idx.plans=idx.plans.filter(p=>!gone.includes(p)); if(!idx.plans.some(p=>p.id===idx.cur)){idx.cur=idx.plans[0].id; reload=true}}
+    // plans changed on this device while the account copy was out of reach
+    for(const p of idx.plans){const loc=ls.get(PK(p.id)); if(p.id!==idx.cur&&loc&&loc.savedAt&&!loc.example&&loc.savedAt>(remote[p.id]||0)){try{await d.doc('plans/'+p.id).set({json:JSON.stringify(loc),savedAt:loc.savedAt,name:p.name}); p.synced=true}catch(_){}}}
+    ls.set(IDX,idx);
+    if(reload&&!drag){state=loadPlan(idx.cur); sel=null; hist=[]; redo=[]}
+    render(); renderPlans();
+    if(!state.example&&(state.savedAt||0)>(remote[idx.cur]||0)){dirty=true; flush()} else status(state.example?'':'Saved');
   }catch(e){status(state.example?'':'Saved on this device')}
 }
 
@@ -493,17 +512,40 @@ document.addEventListener('keydown',e=>{
   }
 });
 
+/* ---------- plans ---------- */
+const planName=()=>(idx.plans.find(p=>p.id===idx.cur)||{}).name||'Plan';
+function payload(){return {json:JSON.stringify(state),savedAt:state.savedAt||Date.now(),name:planName()}}
+let delArmed=false;
+function renderPlans(){$('plan').innerHTML=idx.plans.map(p=>`<option value="${p.id}"${p.id===idx.cur?' selected':''}>${esc(p.name)}</option>`).join(''); $('pdel').disabled=idx.plans.length<2; $('pdel').textContent='Delete'; delArmed=false}
+function leave(){clearTimeout(timer); if(dirty&&db){const id=idx.cur,pl=payload(); dirty=false; db.doc('plans/'+id).set(pl).catch(()=>{})}}
+function openPlan(id){leave(); idx.cur=id; state=loadPlan(id); sel=null; hist=[]; redo=[]; ls.set(IDX,idx); render(); renderPlans(); status('')}
+function newPlan(name,s){leave(); const id=uid(); idx.plans.push({id,name}); idx.cur=id; state=s; addStarters(state); sel=null; hist=[]; redo=[]; renderPlans(); commit()}
+$('plan').onchange=e=>openPlan(e.target.value);
+$('pnew').onclick=()=>newPlan('Plan '+(idx.plans.length+1),example());
+$('pcopy').onclick=()=>newPlan(planName()+' copy',JSON.parse(JSON.stringify(state)));
+$('pren').onclick=()=>{const i=$('pname'); i.value=planName(); $('plan').hidden=true; i.hidden=false; i.focus(); i.select()};
+function renDone(){const i=$('pname'); if(i.hidden) return; const p=idx.plans.find(p=>p.id===idx.cur), v=i.value.trim(); i.hidden=true; $('plan').hidden=false;
+  if(v&&p&&v!==p.name){p.name=v; state.savedAt=Date.now(); state.example=false; saveLocal(); dirty=true; clearTimeout(timer); timer=setTimeout(flush,800)} render(); renderPlans()}
+$('pname').onblur=renDone; $('pname').onkeydown=e=>{if(e.key==='Enter') renDone()};
+$('pdel').onclick=()=>{
+  if(idx.plans.length<2) return;
+  if(!delArmed){delArmed=true; $('pdel').textContent='Tap again to delete'; setTimeout(()=>{if(delArmed) renderPlans()},4000); return}
+  const id=idx.cur; clearTimeout(timer); dirty=false; idx.plans=idx.plans.filter(p=>p.id!==id); ls.del(PK(id)); if(db) db.doc('plans/'+id).delete().catch(()=>{});
+  idx.cur=idx.plans[0].id; state=loadPlan(idx.cur); sel=null; hist=[]; redo=[]; ls.set(IDX,idx); render(); renderPlans();
+};
+renderPlans();
+
 /* ---------- file save/open (hosted copy only; the artifact saves to the account) ---------- */
 if(!(window.claude&&window.claude.use)){
   $('exp').hidden=false; $('imp').hidden=false;
   $('exp').onclick=()=>{
     const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(state)],{type:'application/json'}));
-    a.download='floor-plan-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    a.download=(planName().replace(/[^\w -]+/g,'').trim()||'floor-plan')+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   };
   $('imp').onclick=()=>$('impf').click();
   $('impf').onchange=e=>{
     const file=e.target.files[0]; if(!file) return; const rd=new FileReader();
-    rd.onload=()=>{try{const s=JSON.parse(rd.result); if(!s.floors||!s.floors.length||!s.floors[0].items) throw 0; push(); state=s; sel=null; commit(); status('Opened '+file.name)}catch(_){status('That file is not a floor plan')}};
+    rd.onload=()=>{try{const s=JSON.parse(rd.result); if(!s.floors||!s.floors.length||!s.floors[0].items) throw 0; s.example=false; newPlan(file.name.replace(/\.json$/i,''),s); status('Opened '+file.name+' as a new plan')}catch(_){status('That file is not a floor plan')}};
     rd.readAsText(file); e.target.value='';
   };
 }
