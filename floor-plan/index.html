@@ -105,7 +105,7 @@ tfoot td{font-weight:600;border-bottom:0}
   </div>
 
   <div class="banner" id="banner" hidden>
-    <span>This is an example layout (30 × 60 ft, 1,800 sq ft). Change anything, or clear it and start from an empty outline.</span>
+    <span>This is an example layout: a 30 × 60 ft first floor (1,800 sq ft), a basement and an unfinished second floor. Change anything, or clear it and start from an empty outline.</span>
     <button id="blank">Start blank</button>
   </div>
 
@@ -160,7 +160,14 @@ const CAT={
 function example(){
   const R=(name,x,y,w,h,c)=>({id:uid(),t:'room',name,x,y,w,h,c});
   const F=(name,x,y,wi,hi,k,rot)=>{rot=rot||0;let w=wi/12,h=hi/12;if(rot%2)[w,h]=[h,w];return {id:uid(),t:'furn',name,x,y,w:r2(w),h:r2(h),k:k||'',rot}};
-  return {v:1,snap:0.5,example:true,savedAt:0,cur:'f1',floors:[{id:'f1',name:'First floor',w:60,d:30,items:[
+  return {v:2,snap:0.5,example:true,savedAt:0,cur:'f1',floors:[{id:'b',name:'Basement',w:60,d:30,items:[
+    R('Mechanical room',0,0,16,12,5),R('Future bath & laundry',0,12,16,8,3),R('Workshop & storage',0,20,16,10,2),
+    R('Stairs & hall',16,0,10,30,5),R('Storage',26,0,34,10,5),R('Bunk room (boys)',26,10,34,20,0),
+    F('Stairs',17,1,42,144,'stairs'),F('Furnace',1,1,24,30),F('Water heater',4,1,24,24,'round'),F('Well tank',7,1,20,20,'round'),
+    F('Workbench',1,27.5,72,24),F('Storage shelf',27,0.5,48,18),F('Storage shelf',32,0.5,48,18),
+    F('Bunk bed',27,11,42,80,'bed'),F('Bunk bed',31.5,11,42,80,'bed'),F('Dresser',27,19,60,20),F('Dresser',54.5,11,60,20),
+    F('Couch',44,11,84,36,'seat'),F('Sliding door 6 ft',38,29.75,72,6,'window'),F('Egress window',50,29.75,48,6,'window')
+  ]},{id:'f1',name:'First floor',w:60,d:30,items:[
     R('Bedroom 1',0,0,16,14,0),R('Bath 1',0,14,9,6,3),R('Closet',9,14,7,6,5),R('Bedroom 2',0,20,16,10,0),
     R('Hall & stairs',16,0,10,22,5),R('Bath 2',16,22,10,8,3),R('Kitchen & dining',26,0,16,30,2),R('Living & game room',42,0,18,30,1),
     F('King bed',4.75,0.5,76,80,'bed'),F('Nightstand',2.75,0.5,20,18),F('Nightstand',11.5,0.5,20,18),F('Dresser',5.5,12,60,20),
@@ -171,12 +178,22 @@ function example(){
     F('Chair',31.5,17,18,20,'seat'),F('Chair',34,17,18,20,'seat'),F('Chair',31.5,22.5,18,20,'seat',2),F('Chair',34,22.5,18,20,'seat',2),
     F('Couch',47.5,8,84,36,'seat',2),F('Coffee table',49,4.5,48,24),F('TV stand',48.5,0.5,60,18),F('Pool table 8 ft',46.5,19,100,56),
     F('Door 36 in',13,14,36,36,'door',1),F('Door 36 in',13,20,36,36,'door',0),F('Window 5 ft',5.5,-0.25,60,6,'window'),F('Window 5 ft',48.5,29.75,60,6,'window')
+  ]},{id:'f2',name:'Second floor',w:60,d:30,items:[
+    R('Unfinished space',0,0,60,30,5),F('Stairs',17,1,42,144,'stairs')
   ]}]};
 }
 
 let state, sel=null, ppf=9, hist=[], redo=[], drag=null;
 try{const s=localStorage.getItem(KEY); if(s) state=JSON.parse(s);}catch(e){}
 if(!state||!state.floors||!state.floors.length) state=example();
+function addStarters(s){ // plans saved before the basement and second floor starters existed get them added once
+  if((s.v||1)>=2) return false;
+  const ex=example().floors, has=n=>s.floors.some(f=>f.name.toLowerCase()===n.toLowerCase());
+  if(!has('Basement')) s.floors.unshift(ex[0]);
+  if(!has('Second floor')) s.floors.push(ex[2]);
+  s.v=2; return true;
+}
+addStarters(state);
 const fl=()=>state.floors.find(f=>f.id===state.cur)||state.floors[0];
 const item=id=>fl().items.find(i=>i.id===id);
 const snap=v=>{const s=state.snap||0.5;return r2(Math.round(v/s)*s)};
@@ -215,7 +232,7 @@ async function initDb(){
     db=d;
     if(snapDoc.exists){
       const data=snapDoc.data();
-      if(data&&data.json&&(data.savedAt||0)>(state.savedAt||0)&&!drag){state=JSON.parse(data.json);sel=null;saveLocal();render();status('Saved');}
+      if(data&&data.json&&(data.savedAt||0)>(state.savedAt||0)&&!drag){state=JSON.parse(data.json);sel=null;const added=addStarters(state);saveLocal();render();if(added){dirty=true;flush()}else status('Saved');}
       else if((state.savedAt||0)>(data.savedAt||0)){dirty=true;flush()} else status('Saved');
     }else if(!state.example){dirty=true;flush()} else status('');
   }catch(e){status(state.example?'':'Saved on this device')}
