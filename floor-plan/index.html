@@ -214,27 +214,47 @@ function commit(){
 function push(){hist.push(JSON.stringify(state)); if(hist.length>120) hist.shift(); redo=[]}
 function undo(){if(!hist.length)return; redo.push(JSON.stringify(state)); state=JSON.parse(hist.pop()); sel=null; commit()}
 function redoF(){if(!redo.length)return; hist.push(JSON.stringify(state)); state=JSON.parse(redo.pop()); sel=null; commit()}
-async function initDb(){
+// The hosted copy has no Claude account store, so it shares plans through a small Google script instead.
+const GAS='https://script.google.com/macros/s/AKfycbyJZLNueSV4VYS76jxK0QHKHOnYOtBKliGhOu7AvqnzPZ7Cn1Ahmf8mQhnGCtar68Oc/exec';
+function gasDb(){
+  const post=b=>fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(r=>r.json());
+  return {
+    collection:()=>({get:()=>fetch(GAS).then(r=>r.json()).then(res=>{if(!res||!res.ok) throw {code:'unavailable'}; return {docs:res.plans.map(p=>({id:p.id,data:()=>p}))}})}),
+    doc:path=>{const id=path.split('/')[1]; return {
+      set:d=>post({op:'set',id,name:d.name,savedAt:d.savedAt,json:d.json}).then(r=>{if(!r||(!r.ok&&!r.stale)) throw {code:'unavailable'}}),
+      delete:()=>post({op:'del',id})}}
+  };
+}
+let syncing=false;
+async function sync(d,first){ // pull everyone's plans, keep whichever copy of each is newer, push ours where ours is newer
+  if(syncing) return; syncing=true;
   try{
-    if(!window.claude||!window.claude.use){status(state.example?'':'Saved on this device');return}
-    const d=await window.claude.use('db'); if(!d){status(state.example?'':'Saved on this device');return}
-    const qs=await Promise.race([d.collection('plans').get(),new Promise((_,r)=>setTimeout(()=>r({code:'unavailable'}),10000))]);
-    db=d; let reload=false; const remote={};
+    const qs=await Promise.race([d.collection('plans').get(),new Promise((_,r)=>setTimeout(()=>r({code:'unavailable'}),15000))]);
+    db=d; let reload=false, changed=!!first; const remote={};
     for(const doc of qs.docs){
       const data=doc.data(); if(!data||!data.json) continue; remote[doc.id]=data.savedAt||0;
       const known=idx.plans.find(p=>p.id===doc.id), loc=ls.get(PK(doc.id));
-      if(!known){idx.plans.push({id:doc.id,name:data.name||'Plan',synced:true}); ls.set(PK(doc.id),JSON.parse(data.json))}
-      else{known.synced=true; if((data.savedAt||0)>((loc&&loc.savedAt)||0)){ls.set(PK(doc.id),JSON.parse(data.json)); if(data.name) known.name=data.name; if(doc.id===idx.cur) reload=true}}
+      if(!known){idx.plans.push({id:doc.id,name:data.name||'Plan',synced:true}); ls.set(PK(doc.id),JSON.parse(data.json)); changed=true}
+      else{known.synced=true; if((data.savedAt||0)>((loc&&loc.savedAt)||0)){ls.set(PK(doc.id),JSON.parse(data.json)); if(data.name) known.name=data.name; changed=true; if(doc.id===idx.cur) reload=true}}
     }
-    // a plan that was saved to the account before and is gone now was deleted on another device
+    // a plan that was shared before and is gone now was deleted on another device
     const gone=idx.plans.filter(p=>p.synced&&!(p.id in remote));
-    if(gone.length&&gone.length<idx.plans.length){gone.forEach(p=>ls.del(PK(p.id))); idx.plans=idx.plans.filter(p=>!gone.includes(p)); if(!idx.plans.some(p=>p.id===idx.cur)){idx.cur=idx.plans[0].id; reload=true}}
-    // plans changed on this device while the account copy was out of reach
+    if(gone.length&&gone.length<idx.plans.length){gone.forEach(p=>ls.del(PK(p.id))); idx.plans=idx.plans.filter(p=>!gone.includes(p)); changed=true; if(!idx.plans.some(p=>p.id===idx.cur)){idx.cur=idx.plans[0].id; reload=true}}
+    // plans changed on this device while the shared copy was out of reach
     for(const p of idx.plans){const loc=ls.get(PK(p.id)); if(p.id!==idx.cur&&loc&&loc.savedAt&&!loc.example&&loc.savedAt>(remote[p.id]||0)){try{await d.doc('plans/'+p.id).set({json:JSON.stringify(loc),savedAt:loc.savedAt,name:p.name}); p.synced=true}catch(_){}}}
     ls.set(IDX,idx);
     if(reload&&!drag){state=loadPlan(idx.cur); sel=null; hist=[]; redo=[]}
-    render(); renderPlans();
-    if(!state.example&&(state.savedAt||0)>(remote[idx.cur]||0)){dirty=true; flush()} else status(state.example?'':'Saved');
+    if(changed&&!drag){render(); renderPlans()}
+    if(!state.example&&(state.savedAt||0)>(remote[idx.cur]||0)){dirty=true; flush()} else if(!dirty&&!writing) status(state.example?'':'Saved');
+  }finally{syncing=false}
+}
+async function initDb(){
+  try{
+    const d=(window.claude&&window.claude.use)?await window.claude.use('db'):(GAS?gasDb():null);
+    if(!d){status(state.example?'':'Saved on this device');return}
+    await sync(d,true);
+    // pick up the other person's changes while the page sits open
+    setInterval(()=>{const a=document.activeElement; if(db&&!drag&&!dirty&&!writing&&document.visibilityState==='visible'&&!(a&&a.matches&&a.matches('#insp input,#pname'))) sync(db).catch(()=>{})},20000);
   }catch(e){status(state.example?'':'Saved on this device')}
 }
 
