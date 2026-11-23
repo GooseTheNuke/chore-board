@@ -177,16 +177,40 @@ if(!idx.starter){if(!idx.plans.some(p=>p.id==='v60x30')){const s=example(); s.ex
 if(!idx.plans.some(p=>p.id===idx.cur)) idx.cur=idx.plans[0].id;
 function loadPlan(id){let s=ls.get(PK(id)); if(!s||!s.floors||!s.floors.length) s=example(); addStarters(s); return s}
 state=loadPlan(idx.cur);
-function addStarters(s){ // plans saved before the basement, second floor and Cape second floor starters existed get them added once
-  if((s.v||1)>=3) return false;
+function addStarters(s){ // plans saved before a starter or layout fix existed get it applied once
+  const v=s.v||1; if(v>=4) return false;
   const ex=example().floors, has=n=>s.floors.some(f=>f.name.toLowerCase()===n.toLowerCase());
-  if((s.v||1)<2){
+  if(v<2){
     if(!has('Basement')) s.floors.unshift(ex[0]);
     if(!has('Second floor')) s.floors.push(ex[2]);
   }
   // the Cape version of the second floor only fits the 60 × 30 layout
-  if(!has('Cape 2nd floor')&&s.floors.some(f=>f.w===60&&f.d===30)) s.floors.push(ex[3]);
-  s.v=3; return true;
+  if(v<3&&!has('Cape 2nd floor')&&s.floors.some(f=>f.w===60&&f.d===30)) s.floors.push(ex[3]);
+  basementFit(s);
+  s.v=4; return true;
+}
+function basementFit(s){ // basement bath goes under the first floor baths, and posts go under the centre beam
+  for(const f of s.floors){
+    if(f.name.toLowerCase()!=='basement'||f.w!==60||f.d!==30) continue;
+    const rooms=f.items.filter(i=>i.t==='room');
+    const col=['future bath','mechanical','laundry','workshop'].map(n=>rooms.filter(r=>r.name.toLowerCase().startsWith(n)));
+    if(col.every(a=>a.length===1)){
+      const rs=col.map(a=>a[0]);
+      if(rs.every(r=>r.x===rs[0].x&&r.w===rs[0].w)&&Math.min(...rs.map(r=>r.y))===0&&Math.abs(rs.reduce((a,r)=>a+r.h,0)-f.d)<.01){
+        const furn=f.items.filter(i=>i.t==='furn'), moves=[]; let y=0;
+        for(const r of rs){moves.push([r,y-r.y,furn.filter(i=>{const cx=i.x+i.w/2,cy=i.y+i.h/2; return cx>r.x&&cx<r.x+r.w&&cy>r.y&&cy<r.y+r.h})]); y+=r.h}
+        for(const [r,dy,its] of moves){r.y=r2(r.y+dy); its.forEach(i=>{i.y=r2(i.y+dy)})}
+      }
+    }
+    if(!f.items.some(i=>i.name==='Support post')){
+      const mid=f.d/2; let k=0;
+      for(const r of rooms){
+        if(!(r.y<mid-.01&&r.y+r.h>mid+.01)||r.w<10||/stair/i.test(r.name)) continue;
+        const n=Math.ceil(r.w/9)-1;
+        for(let j=1;j<=n;j++) f.items.push({id:'sp'+(k++),t:'furn',name:'Support post',x:r2(r.x+r.w*j/(n+1)-.25),y:mid-.25,w:.5,h:.5,k:'',rot:0});
+      }
+    }
+  }
 }
 const fl=()=>state.floors.find(f=>f.id===state.cur)||state.floors[0];
 const item=id=>fl().items.find(i=>i.id===id);
